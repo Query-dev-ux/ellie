@@ -178,11 +178,6 @@ const FlirtGame: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { tg } = useTelegram();
 
-  // Отключаем автоскроллинг, так как он не работает должным образом
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   // Удаляем проблемную функцию скроллинга
   
   // Убираем все эффекты скроллинга, они только мешают
