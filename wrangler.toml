@@ -1,6 +1,7 @@
 name = "ellie-telegram-app"
 main = "./.next/server/app/page.js"
 compatibility_date = "2024-05-06"
+compatibility_flags = ["nodejs_compat"]
 
 [site]
 bucket = "./.next" 

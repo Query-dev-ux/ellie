@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "npx wrangler pages deploy .next --project-name=ellie-telegram-app"
+    "deploy": "npx wrangler pages publish .next --project-name=ellie-telegram-app"
   },
   "dependencies": {
     "next": "15.3.1",
