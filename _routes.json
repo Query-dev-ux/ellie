@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "handle": "static"
+    },
+    {
+      "src": "/.*",
+      "dest": "/index.html"
+    }
+  ]
+} 
