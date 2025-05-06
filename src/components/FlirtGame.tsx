@@ -203,6 +203,16 @@ const FlirtGame: React.FC = () => {
     }
   }, [showChat, tg]);
 
+  // Эффект для прокрутки к кнопкам после загрузки чата
+  useEffect(() => {
+    if (showChat) {
+      // Небольшая задержка, чтобы позволить UI отрендериться
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 100);
+    }
+  }, [showChat]);
+
   const handleOptionSelected = (option: Option) => {
     // Добавляем выбранный вариант как сообщение от пользователя
     const updatedMessages = [...messages];
@@ -273,7 +283,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Шапка с Ellie */}
       <div 
-        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 flex items-center border-b border-white/10 relative z-10"
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 flex items-center border-b border-white/10 relative z-10 flex-shrink-0"
       >
         <div 
           className="flex items-center gap-2"
@@ -320,7 +330,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Сообщения */}
       <div 
-        className="flex-1 overflow-y-auto p-3 relative z-10 pb-2 max-h-[calc(100dvh-130px)]"
+        className="flex-1 overflow-y-auto p-3 relative z-10 pb-1 max-h-[calc(100dvh-150px)]"
       >
         {messages.map((msg, index) => (
           <StyledMessage
@@ -335,7 +345,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Нижний блок с кнопками */}
       <div 
-        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 border-t border-white/10 relative z-10 sticky bottom-0 mt-auto"
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 border-t border-white/10 fixed bottom-0 left-0 right-0 z-30 flex-shrink-0"
       >
         {showNextButton ? (
           <button
@@ -352,7 +362,7 @@ const FlirtGame: React.FC = () => {
             Применить полученные навыки
           </button>
         ) : (
-          <div className="max-h-[120px] overflow-y-auto">
+          <div className="max-h-[110px] overflow-y-auto pb-safe">
             {gameScenario.stages[currentStage].options.map((option, index) => (
               <StyledOptionButton
                 key={index}
