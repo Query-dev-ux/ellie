@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
+import WelcomeScreen from './WelcomeScreen';
+import StyledMessage from './StyledMessage';
+import StyledOptionButton from './StyledOptionButton';
 
 // Определение типов для игрового сценария
 type Option = {
@@ -162,218 +165,6 @@ const gameScenario: GameScenario = {
   finalStage: 'final'
 };
 
-// Полностью новая реализация WelcomeScreen
-const WelcomeScreen: React.FC<{ onStart: () => void }> = ({ onStart }) => {
-  return (
-    <div className="flex flex-col h-screen w-full relative">
-      {/* Черный заблюренный фон */}
-      <div 
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(30px)',
-          zIndex: 0
-        }}
-      />
-      
-      {/* Отдаленное фото девушки с закругленными краями */}
-      <div 
-        style={{
-          position: 'absolute',
-          top: '42%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '85%',
-          height: '70%',
-          maxWidth: '400px',
-          maxHeight: '550px',
-          borderRadius: '24px',
-          overflow: 'hidden',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-          zIndex: 1
-        }}
-      >
-        <div 
-          style={{
-            backgroundImage: 'url(/ellie2.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            width: '100%',
-            height: '100%'
-          }}
-        />
-      </div>
-      
-      {/* Название "Ellie" над фото */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '2%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 3,
-          backgroundColor: 'rgba(30,30,40,0.8)',
-          backdropFilter: 'blur(15px)',
-          padding: '10px 24px',
-          borderRadius: '16px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}
-      >
-        <p 
-          style={{
-            color: 'white',
-            fontSize: '20px',
-            fontWeight: 600,
-            margin: 0,
-            textAlign: 'center',
-            textShadow: '0 0 4px rgba(255,255,255,0.4)'
-          }}
-        >
-          <span style={{color: '#f9a8d4'}}>Ellie✨</span>
-        </p>
-      </div>
-      
-      {/* Затемненный блок внизу с закругленными краями */}
-      <div 
-        style={{
-          position: 'absolute',
-          bottom: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          width: '85%',
-          maxWidth: '400px',
-          backgroundColor: 'rgba(30,30,40,0.8)',
-          backdropFilter: 'blur(15px)',
-          padding: '20px',
-          paddingBottom: '25px',
-          zIndex: 2,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-          borderRadius: '24px',
-          border: '1px solid rgba(255,255,255,0.1)'
-        }}
-      >
-        <p 
-          style={{
-            color: 'white',
-            fontSize: '18px',
-            fontWeight: 500,
-            marginBottom: '16px',
-            textShadow: '0 0 4px rgba(255,255,255,0.4)'
-          }}
-        >
-          Твоя <span style={{color: '#f9a8d4'}}>AI-подруга</span>: умная, красивая и всегда на связи
-        </p>
-        
-        <button 
-          onClick={onStart}
-          style={{
-            width: '100%',
-            padding: '16px',
-            background: 'linear-gradient(to right, #4f46e5, #8b5cf6)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '16px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-            transition: 'all 0.2s'
-          }}
-        >
-          Начать чат
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// Стилизуем компонент Message для чата
-const StyledMessage: React.FC<{
-  text: string;
-  sender: 'ellie' | 'system';
-  animate?: boolean;
-}> = ({ text, sender, animate = false }) => {
-  return (
-    <div 
-      className={`flex ${sender === 'ellie' ? 'justify-start' : 'justify-end'}`}
-      style={{
-        marginBottom: '24px' // Увеличиваю отступ между сообщениями
-      }}
-    >
-      {sender === 'ellie' && (
-        <div className="mr-2 self-start mt-1">
-          <div 
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,0.2)',
-              backgroundImage: 'url(/ellie2.png)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
-          />
-        </div>
-      )}
-      
-      <div
-        style={{
-          backgroundColor: sender === 'ellie' ? 'rgba(79, 70, 229, 0.7)' : 'rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(8px)',
-          color: 'white',
-          borderRadius: sender === 'ellie' ? '0px 20px 20px 20px' : '20px 0px 20px 20px',
-          padding: '12px 16px',
-          maxWidth: '75%', // Уменьшаем максимальную ширину
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          animation: animate ? 'fadeIn 0.3s ease-out' : 'none',
-          fontSize: '15px',
-          lineHeight: '1.5'
-        }}
-      >
-        {text.split('\n').map((line, i) => (
-          <div key={i} style={{marginBottom: i < text.split('\n').length - 1 ? '8px' : '0'}}>
-            {line}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Стилизуем компонент OptionButton
-const StyledOptionButton: React.FC<{
-  text: string;
-  onClick: () => void;
-  emoji?: string;
-}> = ({ text, onClick, emoji }) => (
-  <button 
-    onClick={onClick}
-    style={{
-      width: '100%',
-      marginBottom: '10px',
-      padding: '14px',
-      background: 'rgba(255,255,255,0.08)',
-      borderRadius: '16px',
-      border: '1px solid rgba(255,255,255,0.1)',
-      color: 'white',
-      textAlign: 'left',
-      display: 'flex',
-      alignItems: 'center',
-      transition: 'all 0.2s',
-      cursor: 'pointer'
-    }}
-  >
-    {emoji && <span style={{marginRight: '10px', fontSize: '20px'}}>{emoji}</span>}
-    <span>{text}</span>
-  </button>
-);
-
 const FlirtGame: React.FC = () => {
   const [showChat, setShowChat] = useState(false);
   const [currentStage, setCurrentStage] = useState<string>(gameScenario.initialStage);
@@ -469,78 +260,31 @@ const FlirtGame: React.FC = () => {
     <div className="flex flex-col h-screen w-full relative">
       {/* Заблюренный темный фон */}
       <div 
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.85)',
-          backdropFilter: 'blur(30px)',
-          zIndex: 0
-        }}
+        className="absolute inset-0 bg-black/85 backdrop-blur-xl z-0"
       />
       
       {/* Шапка с Ellie */}
       <div 
-        style={{
-          backgroundColor: 'rgba(30,30,40,0.8)',
-          backdropFilter: 'blur(15px)',
-          padding: '10px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
-          position: 'relative',
-          zIndex: 1
-        }}
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-4 flex items-center border-b border-white/10 relative z-10"
       >
         <div 
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px'
-          }}
+          className="flex items-center gap-3"
         >
           <div 
-            style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              border: '1px solid rgba(255,255,255,0.2)',
-              backgroundImage: 'url(/ellie2.png)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
+            className="w-10 h-10 rounded-full border border-white/20 bg-cover bg-center"
+            style={{backgroundImage: 'url(/images/ellie.png)'}}
           />
           <div>
             <div 
-              style={{
-                fontWeight: 'bold',
-                color: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px'
-              }}
+              className="font-bold text-white flex items-center gap-1"
             >
-              Ellie <span style={{color: '#f9a8d4', fontSize: '14px'}}></span>
+              Ellie <span className="text-pink-300 text-sm"></span>
             </div>
             <div 
-              style={{
-                fontSize: '12px',
-                color: 'rgba(255,255,255,0.6)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
+              className="text-xs text-white/60 flex items-center gap-1"
             >
               <span 
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#4ade80',
-                  borderRadius: '50%',
-                  display: 'inline-block'
-                }}
+                className="w-2 h-2 bg-green-400 rounded-full inline-block"
               ></span>
               Онлайн
             </div>
@@ -548,37 +292,19 @@ const FlirtGame: React.FC = () => {
         </div>
         
         <div 
-          style={{
-            marginLeft: 'auto',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
+          className="ml-auto text-white flex items-center gap-2"
         >
           <div 
-            style={{
-              fontSize: '12px',
-              color: 'white'
-            }}
+            className="text-xs text-white"
           >
             Очки флирта: {totalScore}/{maxScore}
           </div>
           <div
-            style={{
-              width: '50px',
-              height: '4px',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: '2px',
-              overflow: 'hidden'
-            }}
+            className="w-12 h-1 bg-white/20 rounded-sm overflow-hidden"
           >
             <div
-              style={{
-                height: '100%',
-                width: `${progress}%`,
-                background: 'linear-gradient(to right, #4f46e5, #8b5cf6)'
-              }}
+              className="h-full bg-gradient-to-r from-indigo-600 to-purple-500"
+              style={{width: `${progress}%`}}
             ></div>
           </div>
         </div>
@@ -586,13 +312,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Сообщения */}
       <div 
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '16px',
-          position: 'relative',
-          zIndex: 1
-        }}
+        className="flex-1 overflow-y-auto p-4 relative z-10"
       >
         {messages.map((msg, index) => (
           <StyledMessage
@@ -607,50 +327,19 @@ const FlirtGame: React.FC = () => {
       
       {/* Нижний блок с кнопками */}
       <div 
-        style={{
-          backgroundColor: 'rgba(30,30,40,0.8)',
-          backdropFilter: 'blur(15px)',
-          padding: '16px',
-          borderTop: '1px solid rgba(255,255,255,0.1)',
-          position: 'relative',
-          zIndex: 1
-        }}
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-4 border-t border-white/10 relative z-10"
       >
         {showNextButton ? (
           <button
             onClick={handleNextStage}
-            style={{
-              width: '100%',
-              padding: '16px',
-              background: 'linear-gradient(to right, #4f46e5, #8b5cf6)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-              transition: 'all 0.2s'
-            }}
+            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-2xl text-base font-bold cursor-pointer shadow-lg transition-all duration-200"
           >
             Продолжить
           </button>
         ) : gameFinished ? (
           <button
             onClick={handleOfferClick}
-            style={{
-              width: '100%',
-              padding: '16px',
-              background: 'linear-gradient(to right, #4f46e5, #8b5cf6)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-              transition: 'all 0.2s'
-            }}
+            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-2xl text-base font-bold cursor-pointer shadow-lg transition-all duration-200"
           >
             Применить полученные навыки
           </button>

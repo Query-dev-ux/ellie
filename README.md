@@ -1,46 +1,53 @@
-# Ellie - Telegram Mini App
+# Ellie - Telegram мини-приложение 
 
-A Telegram mini-app for an AI flirt game featuring Ellie, an AI assistant that helps users practice their flirting skills in a fun, interactive way.
+Ellie - это Telegram мини-приложение для флирт-игры с AI-девушкой. Приложение помогает пользователям тренировать навыки флирта в игровой форме.
 
-## Features
+## Особенности
 
-- Interactive chat interface with Ellie
-- Multiple-choice responses that affect your "flirt score"
-- Beautiful UI with animations and transitions
-- Responsive design that works well within Telegram
+- Стильный и современный UI с анимациями
+- Интерактивный чат с AI-девушкой Ellie
+- Система оценки навыков флирта
+- Несколько ситуаций для тренировки
+- Полноценная интеграция с Telegram Mini Apps
 
-## Tech Stack
+## Технологии
 
 - React
-- TailwindCSS
-- Telegram Mini App API
+- Vite
+- TypeScript
+- Tailwind CSS 4.0
+- Telegram Mini Apps API
 
-## Getting Started
+## Запуск проекта
 
-1. Clone the repository
+1. Клонировать репозиторий
    ```
    git clone https://github.com/Query-dev-ux/ellie.git
    cd ellie
    ```
 
-2. Install dependencies
+2. Установить зависимости
    ```
    npm install
    ```
 
-3. Start the development server
+3. Запустить в режиме разработки
    ```
-   npm start
+   npm run dev
    ```
 
-## Deployment
+4. Сборка для продакшена
+   ```
+   npm run build
+   ```
 
-The app is designed to be deployed as a Telegram Mini App.
+## Структура проекта
 
-## Screenshots
+- `src/components` - React компоненты
+- `src/hooks` - Пользовательские хуки
+- `src/assets` - Статические ресурсы
+- `public` - Публичные файлы
 
-[Coming soon]
-
-## License
+## Лицензия
 
 MIT
