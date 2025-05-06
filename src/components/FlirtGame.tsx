@@ -265,7 +265,7 @@ const FlirtGame: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full relative overflow-hidden">
+    <div className="flex flex-col h-[100dvh] w-full relative overflow-hidden flex-shrink-0 flex-grow-0">
       {/* Заблюренный темный фон */}
       <div 
         className="absolute inset-0 bg-black/85 backdrop-blur-xl z-0"
@@ -320,7 +320,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Сообщения */}
       <div 
-        className="flex-1 overflow-y-auto p-3 relative z-10 pb-2 max-h-[calc(100dvh-120px)]"
+        className="flex-1 overflow-y-auto p-3 relative z-10 pb-2 max-h-[calc(100dvh-130px)]"
       >
         {messages.map((msg, index) => (
           <StyledMessage
@@ -335,7 +335,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Нижний блок с кнопками */}
       <div 
-        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 border-t border-white/10 relative z-10"
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 border-t border-white/10 relative z-10 sticky bottom-0 mt-auto"
       >
         {showNextButton ? (
           <button
@@ -352,7 +352,7 @@ const FlirtGame: React.FC = () => {
             Применить полученные навыки
           </button>
         ) : (
-          <div className="max-h-[150px] overflow-y-auto">
+          <div className="max-h-[120px] overflow-y-auto">
             {gameScenario.stages[currentStage].options.map((option, index) => (
               <StyledOptionButton
                 key={index}
