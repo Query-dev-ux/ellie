@@ -283,7 +283,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Шапка с Ellie */}
       <div 
-        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 flex items-center border-b border-white/10 relative z-10 flex-shrink-0"
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 flex items-center border-b border-white/10 fixed top-0 left-0 right-0 z-30 flex-shrink-0"
       >
         <div 
           className="flex items-center gap-2"
@@ -330,7 +330,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Сообщения */}
       <div 
-        className="flex-1 overflow-y-auto p-3 relative z-10 pb-1 max-h-[calc(100dvh-150px)]"
+        className="flex-1 overflow-y-auto p-3 relative z-10 pb-1 pt-16 pb-20"
       >
         {messages.map((msg, index) => (
           <StyledMessage
@@ -362,7 +362,7 @@ const FlirtGame: React.FC = () => {
             Применить полученные навыки
           </button>
         ) : (
-          <div className="max-h-[110px] overflow-y-auto pb-safe">
+          <div>
             {gameScenario.stages[currentStage].options.map((option, index) => (
               <StyledOptionButton
                 key={index}
