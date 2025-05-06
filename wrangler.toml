@@ -1,0 +1,12 @@
+name = "ellie-telegram-app"
+compatibility_date = "2024-05-06"
+main = "./.next/server/app/page.js"
+
+[build]
+command = "npm run build"
+
+[site]
+bucket = "./.next"
+
+[env.production]
+vars = { ENVIRONMENT = "production" } 
