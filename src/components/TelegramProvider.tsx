@@ -8,6 +8,15 @@ interface TelegramWebApp {
   buttonColor: string;
   buttonTextColor: string;
   openLink: (url: string) => void;
+  close: () => void;
+  initDataUnsafe?: {
+    user?: {
+      id: number;
+      first_name: string;
+      last_name?: string;
+      username?: string;
+    };
+  };
   // Add other telegram methods/properties as needed
 }
 
