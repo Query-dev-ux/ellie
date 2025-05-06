@@ -1,32 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
-// Define a proper interface for Telegram WebApp object
-interface TelegramWebApp {
-  ready: () => void;
-  backgroundColor: string;
-  textColor: string;
-  buttonColor: string;
-  buttonTextColor: string;
-  openLink: (url: string) => void;
-  close: () => void;
-  initDataUnsafe?: {
-    user?: {
-      id: number;
-      first_name: string;
-      last_name?: string;
-      username?: string;
-    };
-  };
-  // Add other telegram methods/properties as needed
-}
-
-declare global {
-  interface Window {
-    Telegram: {
-      WebApp: TelegramWebApp;
-    };
-  }
-}
+import type { TelegramWebApp } from '../types/telegram';
 
 type TelegramProviderProps = {
   children: React.ReactNode;
@@ -43,13 +16,18 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     const telegram = window?.Telegram?.WebApp;
     if (telegram) {
       telegram.ready();
-      setTg(telegram);
+      // Используем spread оператор для избежания проблем с типами
+      setTg({...telegram});
       
       // Установка цветов темы Telegram
       document.documentElement.style.setProperty('--tg-theme-bg-color', telegram.backgroundColor);
       document.documentElement.style.setProperty('--tg-theme-text-color', telegram.textColor);
-      document.documentElement.style.setProperty('--tg-theme-button-color', telegram.buttonColor);
-      document.documentElement.style.setProperty('--tg-theme-button-text-color', telegram.buttonTextColor);
+      
+      // Используем themeParams для buttonColor и buttonTextColor
+      if (telegram.themeParams) {
+        document.documentElement.style.setProperty('--tg-theme-button-color', telegram.themeParams.button_color);
+        document.documentElement.style.setProperty('--tg-theme-button-text-color', telegram.themeParams.button_text_color);
+      }
     }
   }, []);
 
