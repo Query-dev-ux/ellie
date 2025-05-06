@@ -179,12 +179,23 @@ const FlirtGame: React.FC = () => {
   const { tg } = useTelegram();
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Эффект для скролла к началу сообщений при появлении вариантов
+  useEffect(() => {
+    if (!showNextButton && !gameFinished && gameScenario.stages[currentStage].options.length > 0) {
+      // Автоматически прокручиваем чат, чтобы были видны и сообщения, и варианты ответов
+      const chatElement = document.querySelector('.messages-container');
+      if (chatElement) {
+        chatElement.scrollTop = chatElement.scrollHeight - 400; // Меньшее значение для лучшей видимости
+      }
+    }
+  }, [currentStage, showNextButton, gameFinished]);
   
   useEffect(() => {
     if (currentStage === gameScenario.finalStage) {
@@ -330,39 +341,41 @@ const FlirtGame: React.FC = () => {
       
       {/* Сообщения */}
       <div 
-        className="flex-1 overflow-y-auto p-3 relative z-10 pb-1 pt-16 pb-20"
+        className="flex-1 overflow-y-auto p-3 relative z-10 pt-16 messages-container"
       >
-        {messages.map((msg, index) => (
-          <StyledMessage
-            key={index}
-            text={msg.text}
-            sender={msg.sender}
-            animate={index === messages.length - 1}
-          />
-        ))}
-        <div ref={messagesEndRef} />
+        <div className="pb-20">
+          {messages.map((msg, index) => (
+            <StyledMessage
+              key={index}
+              text={msg.text}
+              sender={msg.sender}
+              animate={index === messages.length - 1}
+            />
+          ))}
+          <div ref={messagesEndRef} className="h-10" />
+        </div>
       </div>
       
       {/* Нижний блок с кнопками */}
       <div 
-        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 border-t border-white/10 fixed bottom-0 left-0 right-0 z-30 flex-shrink-0"
+        className="bg-[rgba(30,30,40,0.9)] backdrop-blur-md p-4 pb-6 border-t border-white/10 fixed bottom-0 left-0 right-0 z-30 flex-shrink-0 shadow-[0_-4px_6px_rgba(0,0,0,0.1)]"
       >
         {showNextButton ? (
           <button
             onClick={handleNextStage}
-            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
+            className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
           >
             Продолжить
           </button>
         ) : gameFinished ? (
           <button
             onClick={handleOfferClick}
-            className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
+            className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
           >
             Применить полученные навыки
           </button>
         ) : (
-          <div>
+          <div className="space-y-1">
             {gameScenario.stages[currentStage].options.map((option, index) => (
               <StyledOptionButton
                 key={index}
