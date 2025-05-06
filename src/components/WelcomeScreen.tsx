@@ -21,7 +21,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onStart }) => {
       <div className="absolute inset-0 bg-black/85 backdrop-blur-xl z-0" />
       
       {/* Название "Ellie" над фото */}
-      <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30 bg-[rgba(30,30,40,0.8)] backdrop-blur-md px-5 py-2 rounded-xl shadow-lg border border-white/10">
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 bg-[rgba(30,30,40,0.8)] backdrop-blur-md px-5 py-2 rounded-xl shadow-lg border border-white/10">
         <p className="text-white text-lg font-semibold m-0 text-center [text-shadow:0_0_4px_rgba(255,255,255,0.4)]">
           <span className="text-pink-300">Ellie✨</span>
         </p>
