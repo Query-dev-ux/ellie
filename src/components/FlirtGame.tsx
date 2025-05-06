@@ -182,13 +182,44 @@ const FlirtGame: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  // Скролл к последнему сообщению, но с учетом вариантов ответов
+  const scrollToShowLastMessageAndOptions = () => {
+    const chatElement = document.querySelector('.messages-container');
+    if (chatElement && !showNextButton && !gameFinished && 
+        gameScenario.stages[currentStage].options.length > 0) {
+      // Отматываем немного вверх, чтобы видеть последнее сообщение и варианты
+      // Расчет отступа в зависимости от количества вариантов ответов
+      const optionsCount = gameScenario.stages[currentStage].options.length;
+      const scrollOffset = 120 + (optionsCount * 60); // Базовый отступ + по 60px на вариант
+      
+      const scrollPosition = chatElement.scrollHeight - scrollOffset;
+      chatElement.scrollTo({
+        top: scrollPosition > 0 ? scrollPosition : 0,
+        behavior: 'smooth'
+      });
+    } else {
+      // Обычный скролл к концу, если нет вариантов ответов
+      scrollToBottom();
+    }
+  };
 
   useEffect(() => {
-    // Скролл к последнему сообщению, но с задержкой для работы с условным пространством внизу
+    // Небольшая задержка для рендеринга
     setTimeout(() => {
-      scrollToBottom();
-    }, 100);
-  }, [messages]);
+      scrollToShowLastMessageAndOptions();
+    }, 200);
+  }, [messages, currentStage, showNextButton, gameFinished]);
+
+  // Дополнительно отслеживаем изменение вариантов для скролла
+  useEffect(() => {
+    if (!showNextButton && !gameFinished && 
+        gameScenario.stages[currentStage].options.length > 0) {
+      setTimeout(() => {
+        scrollToShowLastMessageAndOptions();
+      }, 100);
+    }
+  }, [currentStage]);
 
   // Эффект для показа финальной кнопки
   useEffect(() => {
@@ -335,11 +366,8 @@ const FlirtGame: React.FC = () => {
               animate={index === messages.length - 1}
             />
           ))}
-          {/* Прозрачное пространство для предотвращения перекрытия последнего сообщения вариантами ответов */}
-          {(!showNextButton && !gameFinished && gameScenario.stages[currentStage].options.length > 0) && (
-            <div className="h-60" /> /* Высота соответствует примерной высоте блока с опциями */
-          )}
-          <div ref={messagesEndRef} />
+          {/* Небольшое дополнительное пространство внизу для удобства */}
+          <div ref={messagesEndRef} className="h-5" />
         </div>
       </div>
       
