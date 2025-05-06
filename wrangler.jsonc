@@ -1,5 +1,5 @@
 {
-  "name": "ellie-app",
+  "name": "ellie",
   "compatibility_date": "2025-05-06",
   "assets": {
     "directory": "./dist"
