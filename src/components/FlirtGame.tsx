@@ -191,13 +191,15 @@ const FlirtGame: React.FC = () => {
       // Отматываем немного вверх, чтобы видеть последнее сообщение и варианты
       // Расчет отступа в зависимости от количества вариантов ответов
       const optionsCount = gameScenario.stages[currentStage].options.length;
-      const scrollOffset = 120 + (optionsCount * 60); // Базовый отступ + по 60px на вариант
+      const scrollOffset = 140 + (optionsCount * 70); // Увеличенный отступ для лучшей видимости
       
       const scrollPosition = chatElement.scrollHeight - scrollOffset;
       chatElement.scrollTo({
         top: scrollPosition > 0 ? scrollPosition : 0,
         behavior: 'smooth'
       });
+      
+      console.log('Scrolling to position:', scrollPosition);
     } else {
       // Обычный скролл к концу, если нет вариантов ответов
       scrollToBottom();
@@ -208,7 +210,7 @@ const FlirtGame: React.FC = () => {
     // Небольшая задержка для рендеринга
     setTimeout(() => {
       scrollToShowLastMessageAndOptions();
-    }, 200);
+    }, 300); // Увеличенная задержка для надежного рендеринга
   }, [messages, currentStage, showNextButton, gameFinished]);
 
   // Дополнительно отслеживаем изменение вариантов для скролла
