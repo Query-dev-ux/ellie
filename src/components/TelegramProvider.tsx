@@ -1,9 +1,20 @@
 import React, { useEffect, useState } from 'react';
 
+// Define a proper interface for Telegram WebApp object
+interface TelegramWebApp {
+  ready: () => void;
+  backgroundColor: string;
+  textColor: string;
+  buttonColor: string;
+  buttonTextColor: string;
+  openLink: (url: string) => void;
+  // Add other telegram methods/properties as needed
+}
+
 declare global {
   interface Window {
     Telegram: {
-      WebApp: any;
+      WebApp: TelegramWebApp;
     };
   }
 }
@@ -13,11 +24,11 @@ type TelegramProviderProps = {
 };
 
 export const TelegramContext = React.createContext<{
-  tg: any | null;
+  tg: TelegramWebApp | null;
 }>({ tg: null });
 
 const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
-  const [tg, setTg] = useState<any | null>(null);
+  const [tg, setTg] = useState<TelegramWebApp | null>(null);
 
   useEffect(() => {
     const telegram = window?.Telegram?.WebApp;

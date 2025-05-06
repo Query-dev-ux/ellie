@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Message from './Message';
-import OptionButton from './OptionButton';
-import Button from './Button';
 import { useTelegram } from '../hooks/useTelegram';
-import Image from 'next/image';
 
 // Определение типов для игрового сценария
 type Option = {
@@ -311,15 +307,15 @@ const StyledMessage: React.FC<{
     >
       {sender === 'ellie' && (
         <div className="mr-2 self-start mt-1">
-          <img 
-            src="/ellie2.png" 
-            alt="Ellie" 
+          <div 
             style={{
               width: '36px',
               height: '36px',
               borderRadius: '50%',
               border: '1px solid rgba(255,255,255,0.2)',
-              objectFit: 'cover'
+              backgroundImage: 'url(/ellie2.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
             }}
           />
         </div>
@@ -385,7 +381,6 @@ const FlirtGame: React.FC = () => {
     { text: gameScenario.stages[gameScenario.initialStage].message, sender: 'ellie' }
   ]);
   const [totalScore, setTotalScore] = useState<number>(0);
-  const [selectedOption, setSelectedOption] = useState<Option | null>(null);
   const [showNextButton, setShowNextButton] = useState<boolean>(false);
   const [gameFinished, setGameFinished] = useState<boolean>(false);
   
@@ -410,8 +405,6 @@ const FlirtGame: React.FC = () => {
   }, [currentStage]);
 
   const handleOptionSelected = (option: Option) => {
-    setSelectedOption(option);
-    
     // Добавляем выбранный вариант как сообщение от пользователя
     const updatedMessages = [...messages];
     updatedMessages.push({ text: option.text, sender: 'system' });
@@ -449,7 +442,6 @@ const FlirtGame: React.FC = () => {
       // Отправляем сообщение следующего этапа
       setMessages(prev => [...prev, { text: nextStage.message, sender: 'ellie' }]);
       setShowNextButton(false);
-      setSelectedOption(null);
       
       // Если это финальный этап, сразу устанавливаем gameFinished в true
       if (stage.nextStage === gameScenario.finalStage) {
@@ -509,15 +501,15 @@ const FlirtGame: React.FC = () => {
             gap: '10px'
           }}
         >
-          <img 
-            src="/ellie2.png" 
-            alt="Ellie" 
+          <div 
             style={{
               width: '42px',
               height: '42px',
               borderRadius: '50%',
               border: '1px solid rgba(255,255,255,0.2)',
-              objectFit: 'cover'
+              backgroundImage: 'url(/ellie2.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
             }}
           />
           <div>
