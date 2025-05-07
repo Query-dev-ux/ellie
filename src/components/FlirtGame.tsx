@@ -178,9 +178,36 @@ const FlirtGame: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { tg } = useTelegram();
 
-  // Удаляем проблемную функцию скроллинга
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    
+    // Дополнительно убедимся, что предыдущие сообщения тоже видны
+    const chatElement = document.querySelector('.messages-container');
+    if (chatElement && messages.length > 1) {
+      // Позволяем видеть последние сообщения, но оставляем пространство для истории
+      setTimeout(() => {
+        chatElement.scrollTop = chatElement.scrollHeight - chatElement.clientHeight * 0.9;
+      }, 100);
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
   
-  // Убираем все эффекты скроллинга, они только мешают
+  // Эффект для скролла к началу сообщений при появлении вариантов
+  useEffect(() => {
+    if (!showNextButton && !gameFinished && gameScenario.stages[currentStage].options.length > 0) {
+      // Автоматически прокручиваем чат, чтобы были видны и сообщения, и варианты ответов
+      const chatElement = document.querySelector('.messages-container');
+      if (chatElement) {
+        // Убираем жесткое ограничение скролла, которое может скрывать историю сообщений
+        // было: chatElement.scrollTop = chatElement.scrollHeight - 400;
+        chatElement.scrollTop = chatElement.scrollHeight - chatElement.clientHeight + 100;
+      }
+    }
+  }, [currentStage, showNextButton, gameFinished]);
+  
   useEffect(() => {
     if (currentStage === gameScenario.finalStage) {
       // Set a timeout to automatically show the final button after the message is displayed
@@ -197,6 +224,21 @@ const FlirtGame: React.FC = () => {
       tg.expand();
     }
   }, [showChat, tg]);
+
+  // Эффект для прокрутки к кнопкам после загрузки чата
+  useEffect(() => {
+    if (showChat) {
+      // Небольшая задержка, чтобы позволить UI отрендериться
+      setTimeout(() => {
+        // Обеспечиваем, чтобы кнопки были видны, но не скрывалась история сообщений
+        const chatElement = document.querySelector('.messages-container');
+        if (chatElement) {
+          // Установим скролл таким образом, чтобы были видны несколько последних сообщений
+          chatElement.scrollTop = chatElement.scrollHeight - chatElement.clientHeight * 0.7;
+        }
+      }, 100);
+    }
+  }, [showChat]);
 
   const handleOptionSelected = (option: Option) => {
     // Добавляем выбранный вариант как сообщение от пользователя
@@ -268,7 +310,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Шапка с Ellie */}
       <div 
-        className="bg-[rgba(30,30,40,0.9)] backdrop-blur-md p-3 flex items-center border-b border-white/10 fixed top-0 left-0 right-0 z-30 flex-shrink-0"
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 flex items-center border-b border-white/10 fixed top-0 left-0 right-0 z-30 flex-shrink-0"
       >
         <div 
           className="flex items-center gap-2"
@@ -313,10 +355,18 @@ const FlirtGame: React.FC = () => {
         </div>
       </div>
       
-      {/* Полностью перестроенная структура чата и кнопок */}
-      <div className="flex flex-col h-full pt-14">
-        {/* Сообщения - теперь в фиксированной области с ограниченной высотой */}
-        <div className="p-3 overflow-y-auto" style={{ height: "calc(100vh - 180px)" }}>
+      {/* Сообщения */}
+      <div 
+        className="flex-1 overflow-y-auto p-3 relative z-10 pt-16 messages-container"
+        style={{ 
+          maxHeight: 'calc(100vh - 130px)',
+          height: 'auto',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div className="pb-20 flex-grow overflow-y-visible">
           {messages.map((msg, index) => (
             <StyledMessage
               key={index}
@@ -325,38 +375,40 @@ const FlirtGame: React.FC = () => {
               animate={index === messages.length - 1}
             />
           ))}
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-10" />
         </div>
-        
-        {/* Нижний блок с кнопками - всегда внизу */}
-        <div className="bg-[rgba(30,30,40,0.95)] backdrop-blur-md p-4 pb-6 border-t border-white/10 mt-auto">
-          {showNextButton ? (
-            <button
-              onClick={handleNextStage}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
-            >
-              Продолжить
-            </button>
-          ) : gameFinished ? (
-            <button
-              onClick={handleOfferClick}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
-            >
-              Применить полученные навыки
-            </button>
-          ) : (
-            <div className="space-y-1.5">
-              {gameScenario.stages[currentStage].options.map((option, index) => (
-                <StyledOptionButton
-                  key={index}
-                  text={option.text}
-                  emoji={option.emoji}
-                  onClick={() => handleOptionSelected(option)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+      </div>
+      
+      {/* Нижний блок с кнопками */}
+      <div 
+        className="bg-[rgba(30,30,40,0.9)] backdrop-blur-md p-4 pb-6 border-t border-white/10 fixed bottom-0 left-0 right-0 z-30 flex-shrink-0 shadow-[0_-4px_6px_rgba(0,0,0,0.1)]"
+      >
+        {showNextButton ? (
+          <button
+            onClick={handleNextStage}
+            className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
+          >
+            Продолжить
+          </button>
+        ) : gameFinished ? (
+          <button
+            onClick={handleOfferClick}
+            className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-500 text-white border-none rounded-xl text-sm font-bold cursor-pointer shadow-lg transition-all duration-200"
+          >
+            Применить полученные навыки
+          </button>
+        ) : (
+          <div className="space-y-1">
+            {gameScenario.stages[currentStage].options.map((option, index) => (
+              <StyledOptionButton
+                key={index}
+                text={option.text}
+                emoji={option.emoji}
+                onClick={() => handleOptionSelected(option)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
