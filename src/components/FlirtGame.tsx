@@ -178,19 +178,36 @@ const FlirtGame: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { tg } = useTelegram();
 
-  // Скролл к последнему сообщению
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    
+    // Дополнительно убедимся, что предыдущие сообщения тоже видны
+    const chatElement = document.querySelector('.messages-container');
+    if (chatElement && messages.length > 1) {
+      // Позволяем видеть последние сообщения, но оставляем пространство для истории
+      setTimeout(() => {
+        chatElement.scrollTop = chatElement.scrollHeight - chatElement.clientHeight * 0.9;
+      }, 100);
+    }
   };
 
   useEffect(() => {
-    // Скролл к последнему сообщению, но с задержкой для работы с условным пространством внизу
-    setTimeout(() => {
-      scrollToBottom();
-    }, 100);
+    scrollToBottom();
   }, [messages]);
-
-  // Эффект для показа финальной кнопки
+  
+  // Эффект для скролла к началу сообщений при появлении вариантов
+  useEffect(() => {
+    if (!showNextButton && !gameFinished && gameScenario.stages[currentStage].options.length > 0) {
+      // Автоматически прокручиваем чат, чтобы были видны и сообщения, и варианты ответов
+      const chatElement = document.querySelector('.messages-container');
+      if (chatElement) {
+        // Убираем жесткое ограничение скролла, которое может скрывать историю сообщений
+        // было: chatElement.scrollTop = chatElement.scrollHeight - 400;
+        chatElement.scrollTop = chatElement.scrollHeight - chatElement.clientHeight + 100;
+      }
+    }
+  }, [currentStage, showNextButton, gameFinished]);
+  
   useEffect(() => {
     if (currentStage === gameScenario.finalStage) {
       // Set a timeout to automatically show the final button after the message is displayed
@@ -207,6 +224,21 @@ const FlirtGame: React.FC = () => {
       tg.expand();
     }
   }, [showChat, tg]);
+
+  // Эффект для прокрутки к кнопкам после загрузки чата
+  useEffect(() => {
+    if (showChat) {
+      // Небольшая задержка, чтобы позволить UI отрендериться
+      setTimeout(() => {
+        // Обеспечиваем, чтобы кнопки были видны, но не скрывалась история сообщений
+        const chatElement = document.querySelector('.messages-container');
+        if (chatElement) {
+          // Установим скролл таким образом, чтобы были видны несколько последних сообщений
+          chatElement.scrollTop = chatElement.scrollHeight - chatElement.clientHeight * 0.7;
+        }
+      }, 100);
+    }
+  }, [showChat]);
 
   const handleOptionSelected = (option: Option) => {
     // Добавляем выбранный вариант как сообщение от пользователя
@@ -278,7 +310,7 @@ const FlirtGame: React.FC = () => {
       
       {/* Шапка с Ellie */}
       <div 
-        className="bg-[rgba(30,30,40,0.9)] backdrop-blur-md p-3 flex items-center border-b border-white/10 fixed top-0 left-0 right-0 z-30 flex-shrink-0"
+        className="bg-[rgba(30,30,40,0.8)] backdrop-blur-md p-3 flex items-center border-b border-white/10 fixed top-0 left-0 right-0 z-30 flex-shrink-0"
       >
         <div 
           className="flex items-center gap-2"
@@ -323,10 +355,18 @@ const FlirtGame: React.FC = () => {
         </div>
       </div>
       
-      {/* Содержимое с возможностью прокрутки */}
-      <div className="flex flex-col h-full pt-14 pb-20">
-        {/* Сообщения */}
-        <div className="flex-1 overflow-y-auto p-3 messages-container">
+      {/* Сообщения */}
+      <div 
+        className="flex-1 overflow-y-auto p-3 relative z-10 pt-16 messages-container"
+        style={{ 
+          maxHeight: 'calc(100vh - 130px)',
+          height: 'auto',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column'
+        }}
+      >
+        <div className="pb-20 flex-grow overflow-y-visible">
           {messages.map((msg, index) => (
             <StyledMessage
               key={index}
@@ -335,17 +375,13 @@ const FlirtGame: React.FC = () => {
               animate={index === messages.length - 1}
             />
           ))}
-          {/* Прозрачное пространство для предотвращения перекрытия последнего сообщения вариантами ответов */}
-          {(!showNextButton && !gameFinished && gameScenario.stages[currentStage].options.length > 0) && (
-            <div className="h-60" /> /* Высота соответствует примерной высоте блока с опциями */
-          )}
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-10" />
         </div>
       </div>
       
       {/* Нижний блок с кнопками */}
       <div 
-        className="bg-[rgba(30,30,40,0.95)] backdrop-blur-md p-4 pb-6 border-t border-white/10 fixed bottom-0 left-0 right-0 z-30 flex-shrink-0 shadow-[0_-4px_6px_rgba(0,0,0,0.1)]"
+        className="bg-[rgba(30,30,40,0.9)] backdrop-blur-md p-4 pb-6 border-t border-white/10 fixed bottom-0 left-0 right-0 z-30 flex-shrink-0 shadow-[0_-4px_6px_rgba(0,0,0,0.1)]"
       >
         {showNextButton ? (
           <button
@@ -362,7 +398,7 @@ const FlirtGame: React.FC = () => {
             Применить полученные навыки
           </button>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {gameScenario.stages[currentStage].options.map((option, index) => (
               <StyledOptionButton
                 key={index}
