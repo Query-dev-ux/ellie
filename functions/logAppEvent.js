@@ -153,28 +153,27 @@ export async function onRequest(context) {
       const userIdStr = userId ? userId.toString() : 'unknown';
       const usernameStr = username || 'unknown';
       const sourceStr = 'mini_app';
-      const additionalDataStr = additionalData ? JSON.stringify(additionalData) : '';
+      
+      // Сделаем копию additionalData, чтобы не изменять исходный объект
+      const additionalDataCopy = { ...additionalData };
       
       // Извлекаем данные о языке, стране и устройстве
-      let language = 'unknown';
       let country = 'unknown';
       let device = 'unknown';
       
-      if (additionalData) {
-        // Получаем язык из navigator.language
-        if (additionalData.language) {
-          language = additionalData.language;
+      if (additionalDataCopy) {
+        // Получаем язык/локаль из navigator.language
+        if (additionalDataCopy.language) {
+          // Используем полный код локали как значение country
+          country = additionalDataCopy.language;
           
-          // Извлекаем страну из языка (например, 'ru-RU' -> 'RU')
-          const localeParts = additionalData.language.split('-');
-          if (localeParts.length > 1) {
-            country = localeParts[1];
-          }
+          // Удаляем поле из additionalData, чтобы оно не дублировалось
+          delete additionalDataCopy.language;
         }
         
         // Определяем устройство из userAgent
-        if (additionalData.userAgent) {
-          const ua = additionalData.userAgent.toLowerCase();
+        if (additionalDataCopy.userAgent) {
+          const ua = additionalDataCopy.userAgent.toLowerCase();
           if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
             device = 'iOS';
           } else if (ua.includes('android')) {
@@ -186,26 +185,49 @@ export async function onRequest(context) {
           } else if (ua.includes('linux')) {
             device = 'Linux';
           }
+          
+          // Удаляем userAgent из additionalData, чтобы сократить объем данных
+          delete additionalDataCopy.userAgent;
         }
         
-        // Если передано конкретное значение устройства, используем его
-        if (additionalData.device) {
-          device = additionalData.device;
+        // Если переданы конкретные значения, используем их
+        if (additionalDataCopy.device) {
+          device = additionalDataCopy.device;
+          delete additionalDataCopy.device;
         }
         
-        // Если передано конкретное значение страны, используем его
-        if (additionalData.country) {
-          country = additionalData.country;
+        if (additionalDataCopy.country) {
+          country = additionalDataCopy.country;
+          delete additionalDataCopy.country;
+        }
+        
+        // Удаляем поля, которые теперь обрабатываются отдельно
+        if (additionalDataCopy.platform) {
+          delete additionalDataCopy.platform;
         }
       }
       
-      // Данные для добавления через Google Sheets API
-      // Добавляем столбцы для языка, страны и устройства
+      // Конвертируем очищенные additionalData в строку
+      const additionalDataStr = Object.keys(additionalDataCopy || {}).length > 0 
+        ? JSON.stringify(additionalDataCopy) 
+        : '';
+      
+      // Подготавливаем массив в соответствии с новым порядком столбцов в таблице
+      // A - Date, B - User ID, C - Username, D - Country, E - Device, F - Action, G - Source, H - Additional Data
       const values = [
-        [now, userIdStr, usernameStr, event, sourceStr, additionalDataStr, language, country, device]
+        [
+          now,              // Date (A)
+          userIdStr,        // User ID (B)
+          usernameStr,      // Username (C)
+          country,          // Country (D) - полный код локали
+          device,           // Device (E)
+          event,            // Action (F)
+          sourceStr,        // Source (G)
+          additionalDataStr // Additional Data (H)
+        ]
       ];
       
-      console.log('[logAppEvent] Preparing to send data to Google Sheets');
+      console.log('[logAppEvent] Preparing to send data to Google Sheets:', values[0]);
       
       // Создаем JWT токен для аутентификации
       const token = await createJWT(
@@ -217,8 +239,7 @@ export async function onRequest(context) {
       console.log('[logAppEvent] JWT token created');
       
       // URL для Google Sheets API
-      // Обновляем диапазон с A:F на A:I, чтобы включить новые столбцы
-      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A:I:append?valueInputOption=USER_ENTERED`;
+      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A:H:append?valueInputOption=USER_ENTERED`;
       
       // Отправляем запрос к Google Sheets API
       const response = await fetch(apiUrl, {

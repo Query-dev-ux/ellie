@@ -79,17 +79,10 @@ export const useAppLogging = () => {
     }
   };
 
-  // Функция для определения данных по устройству и языку
-  const getDeviceAndLanguageInfo = () => {
-    // Получаем язык пользователя
-    const language = navigator.language || 'unknown';
-    
-    // Определяем страну из языка
-    let country = 'unknown';
-    const localeParts = language.split('-');
-    if (localeParts.length > 1) {
-      country = localeParts[1];
-    }
+  // Функция для определения данных по устройству и стране
+  const getDeviceAndCountryInfo = () => {
+    // Получаем полный код локали пользователя
+    const country = navigator.language || 'unknown';
     
     // Определяем устройство из userAgent
     let device = 'unknown';
@@ -107,11 +100,22 @@ export const useAppLogging = () => {
     }
     
     return {
-      language,
-      country,
+      country,  // Полный код локали (например, "ru-RU")
       device,
       userAgent: navigator.userAgent,
       platform: navigator.platform
+    };
+  };
+
+  // Функция для получения идентификатора пользователя из URL-параметров
+  const getUserInfoFromUrl = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    const username = urlParams.get('username');
+    
+    return { 
+      urlUserId: userId ? parseInt(userId, 10) : null,
+      urlUsername: username || null
     };
   };
 
@@ -136,12 +140,20 @@ export const useAppLogging = () => {
     }
 
     try {
-      // Получаем информацию об устройстве и языке
-      const deviceAndLanguageInfo = getDeviceAndLanguageInfo();
+      // Получаем информацию об устройстве и стране
+      const deviceAndCountryInfo = getDeviceAndCountryInfo();
       
-      // Добавляем информацию о наличии initData и user для диагностики
+      // Получаем дополнительную информацию из URL-параметров
+      const urlUserInfo = getUserInfoFromUrl();
+      
+      // Определяем реальный идентификатор пользователя
+      // Приоритет: 1) Данные из WebApp, 2) Данные из URL-параметров
+      const userId = user?.id || urlUserInfo.urlUserId;
+      const username = user?.username || urlUserInfo.urlUsername;
+      
+      // Создаем полные данные для логирования
       const enhancedAdditionalData = {
-        ...deviceAndLanguageInfo,
+        ...deviceAndCountryInfo,
         ...additionalData,
         debug: {
           hasUser: !!user,
@@ -152,7 +164,7 @@ export const useAppLogging = () => {
       };
       
       // Проверка наличия данных пользователя
-      if (!user && event !== 'app_error') {
+      if (!userId && !username && event !== 'app_error') {
         console.warn('User data not available, logging app_error instead');
         return await logEvent('app_error', { 
           originalEvent: event,
@@ -163,8 +175,8 @@ export const useAppLogging = () => {
 
       const logData: LogEvent = {
         event,
-        userId: user?.id || null,
-        username: user?.username || null,
+        userId,
+        username,
         timestamp: new Date().toISOString(),
         additionalData: enhancedAdditionalData
       };

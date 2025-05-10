@@ -97,14 +97,20 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     }
     
     try {
+      // Используем userId и username от пользователя Telegram если доступны,
+      // иначе используем данные из URL параметров
+      const userId = tg.initDataUnsafe?.user?.id || userData?.id || extractedUserId;
+      const username = tg.initDataUnsafe?.user?.username || userData?.username || extractedUsername;
+      
       await logAppOpen({
+        // Передаем данные о платформе, устройстве и стране
         platform: navigator.platform,
         userAgent: navigator.userAgent,
-        language: navigator.language,
-        extractedUserId: userData?.id || extractedUserId,
-        extractedUsername: userData?.username || extractedUsername
+        country: navigator.language,  // Используем полный код локали вместо language
+        userId: userId,  // Явно передаем userId
+        username: username  // Явно передаем username
       });
-      console.log('App open logged successfully');
+      console.log('App open logged successfully with user data:', { userId, username });
     } catch (error) {
       console.error('Failed to log app open:', error);
     }
