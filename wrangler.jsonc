@@ -1,5 +1,5 @@
 {
-  "name": "ellie",
+  "name": "ellie-app",
   "compatibility_date": "2025-05-06",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
