@@ -17,7 +17,7 @@ interface LogEvent {
  * Хук для логирования событий в Mini App
  */
 export const useAppLogging = () => {
-  const { tg, user } = useTelegram();
+  const { tg, user, initDataStr } = useTelegram();
   const [isLogServiceAvailable, setIsLogServiceAvailable] = useState<boolean>(true);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
@@ -26,11 +26,39 @@ export const useAppLogging = () => {
     // Проверка выполняется только в реальной среде Telegram WebApp
     if (tg) {
       console.log('TelegramWebApp initialized, checking log service availability');
+      console.log('User data in useAppLogging:', user);
+      console.log('InitData available:', !!initDataStr);
+      
+      // Расширенная диагностика
+      if (!user) {
+        console.warn('User data not available in WebApp');
+        if (initDataStr) {
+          console.log('Raw initData available, sample:', 
+            initDataStr.length > 100 ? initDataStr.substring(0, 100) + '...' : initDataStr);
+          try {
+            const params = new URLSearchParams(initDataStr);
+            console.log('initData params:', 
+              Array.from(params.entries()).map(([key, val]) => `${key}: ${val.length > 50 ? val.substring(0, 50) + '...' : val}`).join(', '));
+            
+            // Проверяем, есть ли параметр user
+            if (params.has('user')) {
+              console.log('User param found in initData:', params.get('user'));
+            } else {
+              console.warn('No user param in initData');
+            }
+          } catch (error) {
+            console.error('Failed to parse initData in useAppLogging hook:', error);
+          }
+        } else {
+          console.warn('No initData available at all');
+        }
+      }
+      
       checkLogServiceAvailability();
     } else {
       console.warn('TelegramWebApp not available');
     }
-  }, [tg]);
+  }, [tg, user, initDataStr]);
 
   // Проверка доступности сервиса логирования
   const checkLogServiceAvailability = async () => {
@@ -72,13 +100,25 @@ export const useAppLogging = () => {
     }
 
     try {
+      // Добавляем информацию о наличии initData и user для диагностики
+      const enhancedAdditionalData = {
+        ...additionalData,
+        debug: {
+          hasUser: !!user,
+          userIdType: user?.id ? typeof user.id : 'undefined',
+          hasInitData: !!initDataStr,
+          initDataLength: initDataStr?.length || 0,
+          userAgent: navigator.userAgent
+        }
+      };
+      
       // Проверка наличия данных пользователя
       if (!user && event !== 'app_error') {
         console.warn('User data not available, logging app_error instead');
         return await logEvent('app_error', { 
           originalEvent: event,
           error: 'User data not available',
-          additionalData 
+          additionalData: enhancedAdditionalData 
         });
       }
 
@@ -87,10 +127,7 @@ export const useAppLogging = () => {
         userId: user?.id || null,
         username: user?.username || null,
         timestamp: new Date().toISOString(),
-        additionalData: {
-          ...additionalData,
-          userAgent: navigator.userAgent
-        }
+        additionalData: enhancedAdditionalData
       };
 
       console.log('Sending log event:', logData);

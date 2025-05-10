@@ -48,9 +48,49 @@ export async function onRequest(context) {
     }
 
     // Получение данных для логирования
-    const { event, userId, username, timestamp, additionalData } = bodyData;
+    let { event, userId, username, timestamp, additionalData } = bodyData;
     
     console.log('[logAppEvent] Log data received:', { event, userId, username });
+    
+    // Попытка извлечь информацию о пользователе из дополнительных данных, если основные данные отсутствуют
+    if ((!userId || !username) && additionalData) {
+      console.log('[logAppEvent] Attempting to extract user info from additionalData');
+      
+      // Проверяем, есть ли у нас данные об извлеченном пользователе
+      if (additionalData.extractedUserId || additionalData.extractedUsername) {
+        console.log('[logAppEvent] Found extracted user data:', {
+          extractedUserId: additionalData.extractedUserId,
+          extractedUsername: additionalData.extractedUsername
+        });
+        
+        // Используем извлеченные данные, если основные отсутствуют
+        userId = userId || additionalData.extractedUserId;
+        username = username || additionalData.extractedUsername;
+      }
+      
+      // Ищем в debug информации
+      if ((!userId || !username) && additionalData.debug) {
+        console.log('[logAppEvent] Debug info available, checking for user data');
+        
+        if (additionalData.debug.extractedUserId || additionalData.debug.extractedUsername) {
+          userId = userId || additionalData.debug.extractedUserId;
+          username = username || additionalData.debug.extractedUsername;
+        }
+        
+        // Логируем всю отладочную информацию для анализа
+        console.log('[logAppEvent] Debug info:', additionalData.debug);
+      }
+      
+      // Ищем в rawInitDataSample подстроку "user":
+      if ((!userId || !username) && additionalData.rawInitDataSample) {
+        console.log('[logAppEvent] Analyzing rawInitDataSample for user info');
+        
+        // Проверяем, содержит ли образец initData что-то про user
+        if (additionalData.rawInitDataSample.includes('user')) {
+          console.log('[logAppEvent] Found "user" in rawInitDataSample');
+        }
+      }
+    }
 
     // Проверка наличия переменных окружения
     if (!env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !env.GOOGLE_PRIVATE_KEY) {

@@ -13,6 +13,8 @@ export const TelegramContext = React.createContext<{
 const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [extractedUserId, setExtractedUserId] = useState<number | null>(null);
+  const [extractedUsername, setExtractedUsername] = useState<string | null>(null);
   const { logAppOpen, logAppClose, isInitialized: isLoggingInitialized } = useAppLogging();
 
   // Функция для логирования открытия приложения
@@ -43,6 +45,15 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
         if (params.has('user')) {
           userData = JSON.parse(params.get('user') || '{}');
           console.log('Extracted user data from initData:', userData);
+          
+          // Сохраняем извлеченные данные для дальнейшего использования
+          if (userData && userData.id) {
+            setExtractedUserId(userData.id);
+            setExtractedUsername(userData.username || null);
+          }
+        } else {
+          // Печатаем все параметры для диагностики
+          console.log('initData params:', Array.from(params.entries()));
         }
       } catch (error) {
         console.error('Failed to parse user data from initData:', error);
@@ -59,8 +70,8 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
         telegramTheme: tg.themeParams ? { ...tg.themeParams } : 'not_available',
         version: tg.version || 'unknown',
         // Используем извлеченные данные, если доступны
-        extractedUserId: userData?.id || null,
-        extractedUsername: userData?.username || null,
+        extractedUserId: userData?.id || extractedUserId,
+        extractedUsername: userData?.username || extractedUsername,
         // Сохраняем информацию о состоянии initData
         hasInitData: !!tg.initData,
         initDataLength: tg.initData?.length || 0,
@@ -71,7 +82,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Failed to log app open:', error);
     }
-  }, [tg, logAppOpen]);
+  }, [tg, logAppOpen, extractedUserId, extractedUsername]);
 
   // Эффект для инициализации Telegram WebApp
   useEffect(() => {
@@ -88,6 +99,29 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
           console.log('Raw initData:', telegram.initData);
           console.log('initData length:', telegram.initData?.length || 0);
           console.log('InitDataUnsafe object:', telegram.initDataUnsafe);
+          
+          // Пытаемся извлечь данные пользователя из initData, если они недоступны в initDataUnsafe
+          if (!telegram.initDataUnsafe?.user && telegram.initData) {
+            try {
+              // Попытка извлечь данные из URL-encoded initData
+              const params = new URLSearchParams(telegram.initData);
+              if (params.has('user')) {
+                const userData = JSON.parse(params.get('user') || '{}');
+                console.log('Extracted user data at initialization:', userData);
+                
+                // Сохраняем извлеченные данные для дальнейшего использования
+                if (userData && userData.id) {
+                  setExtractedUserId(userData.id);
+                  setExtractedUsername(userData.username || null);
+                }
+              } else {
+                // Логируем все параметры для диагностики
+                console.log('initData params during initialization:', Array.from(params.entries()));
+              }
+            } catch (error) {
+              console.error('Failed to parse user data from initData during initialization:', error);
+            }
+          }
           
           // Используем spread оператор для избежания проблем с типами
           setTg({...telegram});
@@ -134,7 +168,9 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     const handleBeforeUnload = () => {
       logAppClose({
         closeTime: new Date().toISOString(),
-        sessionDuration: Math.floor((Date.now() - (tg.initDataUnsafe?.auth_date || 0) * 1000) / 1000)
+        sessionDuration: Math.floor((Date.now() - (tg.initDataUnsafe?.auth_date || 0) * 1000) / 1000),
+        extractedUserId,
+        extractedUsername
       }).catch(error => console.error('Failed to log app close:', error));
     };
     
@@ -144,7 +180,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [tg, logAppClose]);
+  }, [tg, logAppClose, extractedUserId, extractedUsername]);
 
   return (
     <TelegramContext.Provider value={{ tg }}>

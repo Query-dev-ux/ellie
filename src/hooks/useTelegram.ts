@@ -3,12 +3,29 @@ import type { TelegramWebApp } from '../types/telegram';
 
 export const useTelegram = () => {
   const [telegram, setTelegram] = useState<TelegramWebApp | null>(null);
+  const [parsedUser, setParsedUser] = useState<{ id: number; username?: string } | null>(null);
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
       setTelegram(tg);
+
+      // Пытаемся получить данные пользователя из initData, если они недоступны в initDataUnsafe
+      if (!tg.initDataUnsafe?.user && tg.initData) {
+        try {
+          console.log('Trying to extract user data from initData string');
+          // Парсим данные из URL-encoded строки initData
+          const params = new URLSearchParams(tg.initData);
+          if (params.has('user')) {
+            const extractedUser = JSON.parse(params.get('user') || '{}');
+            console.log('Extracted user data from initData:', extractedUser);
+            setParsedUser(extractedUser);
+          }
+        } catch (error) {
+          console.error('Failed to parse user data from initData:', error);
+        }
+      }
 
       // При монтировании компонента устанавливаем цвета
       document.documentElement.style.setProperty('--tg-theme-bg-color', tg.backgroundColor || '#ffffff');
@@ -26,7 +43,8 @@ export const useTelegram = () => {
 
   return {
     tg: telegram,
-    user: telegram?.initDataUnsafe?.user,
+    user: telegram?.initDataUnsafe?.user || parsedUser,
+    initDataStr: telegram?.initData || null,
     isSupported: Boolean(telegram),
     close: () => telegram?.close(),
     expand: () => telegram?.expand(),
