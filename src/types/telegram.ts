@@ -46,6 +46,7 @@ export interface TelegramWebApp {
     secondary_bg_color: string;
   };
   openLink: (url: string) => void;
+  initData: string; // Raw строка инициализационных данных от Telegram
   initDataUnsafe: {
     user?: {
       id: number;

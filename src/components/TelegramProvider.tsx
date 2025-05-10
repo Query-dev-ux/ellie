@@ -22,10 +22,32 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
       return;
     }
     
-    console.log('Logging app open with user data:', {
+    // Подробное логирование данных пользователя
+    console.log('Telegram WebApp initData:', {
+      hasInitData: !!tg.initData,
+      initDataLength: tg.initData?.length,
+      initDataUnsafe: tg.initDataUnsafe || 'not available',
+      user: tg.initDataUnsafe?.user || 'user data not available',
       userId: tg.initDataUnsafe?.user?.id,
-      username: tg.initDataUnsafe?.user?.username
+      username: tg.initDataUnsafe?.user?.username,
+      authDate: tg.initDataUnsafe?.auth_date,
+      hash: tg.initDataUnsafe?.hash ? 'hash exists' : 'no hash',
     });
+    
+    // Извлечение данных пользователя из initData, если они недоступны в initDataUnsafe
+    let userData = null;
+    if (!tg.initDataUnsafe?.user && tg.initData) {
+      try {
+        // Попытка извлечь данные из URL-encoded initData
+        const params = new URLSearchParams(tg.initData);
+        if (params.has('user')) {
+          userData = JSON.parse(params.get('user') || '{}');
+          console.log('Extracted user data from initData:', userData);
+        }
+      } catch (error) {
+        console.error('Failed to parse user data from initData:', error);
+      }
+    }
     
     try {
       await logAppOpen({
@@ -35,7 +57,15 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
         telegramTheme: tg.themeParams ? { ...tg.themeParams } : 'not_available',
-        version: tg.version || 'unknown'
+        version: tg.version || 'unknown',
+        // Используем извлеченные данные, если доступны
+        extractedUserId: userData?.id || null,
+        extractedUsername: userData?.username || null,
+        // Сохраняем информацию о состоянии initData
+        hasInitData: !!tg.initData,
+        initDataLength: tg.initData?.length || 0,
+        userDataStatus: tg.initDataUnsafe?.user ? 'available' : 'unavailable',
+        rawInitDataSample: tg.initData ? (tg.initData.length > 50 ? tg.initData.substring(0, 50) + '...' : tg.initData) : null
       });
       console.log('App open logged successfully');
     } catch (error) {
@@ -53,6 +83,11 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
           
           // Вызываем ready() для активации WebApp
           telegram.ready();
+          
+          // Логируем информацию об initData и initDataUnsafe
+          console.log('Raw initData:', telegram.initData);
+          console.log('initData length:', telegram.initData?.length || 0);
+          console.log('InitDataUnsafe object:', telegram.initDataUnsafe);
           
           // Используем spread оператор для избежания проблем с типами
           setTg({...telegram});

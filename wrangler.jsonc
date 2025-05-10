@@ -1,9 +1,11 @@
 {
-  "name": "ellie-app",
+  "name": "ellie",
   "compatibility_date": "2025-05-06",
+  "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": "./dist"
   },
+  "main": "./dist/functions/_routes.js",
   "vars": {
     "ENVIRONMENT": "production"
   },

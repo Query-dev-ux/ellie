@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTelegram } from './useTelegram';
 
 // URL вашего сервиса, который будет записывать в Google Sheets
-// URL для Cloudflare Worker
-const LOG_SERVICE_URL = 'https://ellie.query-dclxv1.workers.dev/api/logAppEvent';
-// Для тестирования можно использовать любой сервис, который покажет полученные данные
-// например: 'https://webhook.site/your-unique-id'
+// Относительный URL для текущего домена - наиболее надежный вариант
+const LOG_SERVICE_URL = '/api/logAppEvent';
 
 interface LogEvent {
   event: string;
