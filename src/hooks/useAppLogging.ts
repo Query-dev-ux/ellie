@@ -79,6 +79,42 @@ export const useAppLogging = () => {
     }
   };
 
+  // Функция для определения данных по устройству и языку
+  const getDeviceAndLanguageInfo = () => {
+    // Получаем язык пользователя
+    const language = navigator.language || 'unknown';
+    
+    // Определяем страну из языка
+    let country = 'unknown';
+    const localeParts = language.split('-');
+    if (localeParts.length > 1) {
+      country = localeParts[1];
+    }
+    
+    // Определяем устройство из userAgent
+    let device = 'unknown';
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
+      device = 'iOS';
+    } else if (ua.includes('android')) {
+      device = 'Android';
+    } else if (ua.includes('windows')) {
+      device = 'Windows';
+    } else if (ua.includes('macintosh') || ua.includes('mac os')) {
+      device = 'Mac';
+    } else if (ua.includes('linux')) {
+      device = 'Linux';
+    }
+    
+    return {
+      language,
+      country,
+      device,
+      userAgent: navigator.userAgent,
+      platform: navigator.platform
+    };
+  };
+
   // Функция для логирования событий
   const logEvent = async (
     event: string,
@@ -100,15 +136,18 @@ export const useAppLogging = () => {
     }
 
     try {
+      // Получаем информацию об устройстве и языке
+      const deviceAndLanguageInfo = getDeviceAndLanguageInfo();
+      
       // Добавляем информацию о наличии initData и user для диагностики
       const enhancedAdditionalData = {
+        ...deviceAndLanguageInfo,
         ...additionalData,
         debug: {
           hasUser: !!user,
           userIdType: user?.id ? typeof user.id : 'undefined',
           hasInitData: !!initDataStr,
-          initDataLength: initDataStr?.length || 0,
-          userAgent: navigator.userAgent
+          initDataLength: initDataStr?.length || 0
         }
       };
       

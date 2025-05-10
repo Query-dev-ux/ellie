@@ -102,28 +102,14 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
         platform: navigator.platform,
         userAgent: navigator.userAgent,
         language: navigator.language,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight,
-        telegramTheme: tg.themeParams ? { ...tg.themeParams } : 'not_available',
-        version: tg.version || 'unknown',
-        // Используем извлеченные данные, если доступны
         extractedUserId: userData?.id || extractedUserId,
-        extractedUsername: userData?.username || extractedUsername,
-        // Сохраняем информацию о состоянии initData
-        hasInitData: !!tg.initData,
-        initDataLength: tg.initData?.length || 0,
-        userDataStatus: tg.initDataUnsafe?.user ? 'available' : 'unavailable',
-        rawInitDataSample: tg.initData ? (tg.initData.length > 50 ? tg.initData.substring(0, 50) + '...' : tg.initData) : null,
-        // Добавляем информацию о запуске приложения
-        launchDiagnostics,
-        // Добавляем информацию о параметрах URL
-        urlParams: window.location.search
+        extractedUsername: userData?.username || extractedUsername
       });
       console.log('App open logged successfully');
     } catch (error) {
       console.error('Failed to log app open:', error);
     }
-  }, [tg, logAppOpen, extractedUserId, extractedUsername, launchDiagnostics]);
+  }, [tg, logAppOpen, extractedUserId, extractedUsername]);
 
   // Функция для определения метода запуска
   const detectLaunchMethod = useCallback(() => {
@@ -135,12 +121,6 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
       referrer: document.referrer,
       isInIframe: window !== window.parent,
       isHttps: window.location.protocol === 'https:',
-      screenSize: {
-        width: window.screen.width,
-        height: window.screen.height,
-        availWidth: window.screen.availWidth,
-        availHeight: window.screen.availHeight,
-      },
       isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
       platform: navigator.platform,
       userAgent: navigator.userAgent,
@@ -162,7 +142,6 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
       diagnostics.isTelegramAvailable = true;
       diagnostics.telegramVersion = window.Telegram.WebApp.version || 'unknown';
       diagnostics.hasInitData = !!window.Telegram.WebApp.initData;
-      diagnostics.initDataLength = window.Telegram.WebApp.initData?.length || 0;
       diagnostics.hasUser = !!window.Telegram.WebApp.initDataUnsafe?.user;
       
       // Проверка параметров URL
@@ -300,9 +279,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
         closeTime: new Date().toISOString(),
         sessionDuration: Math.floor((Date.now() - (tg.initDataUnsafe?.auth_date || 0) * 1000) / 1000),
         extractedUserId,
-        extractedUsername,
-        launchDiagnostics,
-        urlParams: window.location.search
+        extractedUsername
       }).catch(error => console.error('Failed to log app close:', error));
     };
     
@@ -312,7 +289,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [tg, logAppClose, extractedUserId, extractedUsername, launchDiagnostics]);
+  }, [tg, logAppClose, extractedUserId, extractedUsername]);
 
   return (
     <TelegramContext.Provider value={{ tg }}>

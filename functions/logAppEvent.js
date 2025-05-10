@@ -155,9 +155,54 @@ export async function onRequest(context) {
       const sourceStr = 'mini_app';
       const additionalDataStr = additionalData ? JSON.stringify(additionalData) : '';
       
+      // Извлекаем данные о языке, стране и устройстве
+      let language = 'unknown';
+      let country = 'unknown';
+      let device = 'unknown';
+      
+      if (additionalData) {
+        // Получаем язык из navigator.language
+        if (additionalData.language) {
+          language = additionalData.language;
+          
+          // Извлекаем страну из языка (например, 'ru-RU' -> 'RU')
+          const localeParts = additionalData.language.split('-');
+          if (localeParts.length > 1) {
+            country = localeParts[1];
+          }
+        }
+        
+        // Определяем устройство из userAgent
+        if (additionalData.userAgent) {
+          const ua = additionalData.userAgent.toLowerCase();
+          if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
+            device = 'iOS';
+          } else if (ua.includes('android')) {
+            device = 'Android';
+          } else if (ua.includes('windows')) {
+            device = 'Windows';
+          } else if (ua.includes('macintosh') || ua.includes('mac os')) {
+            device = 'Mac';
+          } else if (ua.includes('linux')) {
+            device = 'Linux';
+          }
+        }
+        
+        // Если передано конкретное значение устройства, используем его
+        if (additionalData.device) {
+          device = additionalData.device;
+        }
+        
+        // Если передано конкретное значение страны, используем его
+        if (additionalData.country) {
+          country = additionalData.country;
+        }
+      }
+      
       // Данные для добавления через Google Sheets API
+      // Добавляем столбцы для языка, страны и устройства
       const values = [
-        [now, userIdStr, usernameStr, event, sourceStr, additionalDataStr]
+        [now, userIdStr, usernameStr, event, sourceStr, additionalDataStr, language, country, device]
       ];
       
       console.log('[logAppEvent] Preparing to send data to Google Sheets');
@@ -172,7 +217,8 @@ export async function onRequest(context) {
       console.log('[logAppEvent] JWT token created');
       
       // URL для Google Sheets API
-      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A:F:append?valueInputOption=USER_ENTERED`;
+      // Обновляем диапазон с A:F на A:I, чтобы включить новые столбцы
+      const apiUrl = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}!A:I:append?valueInputOption=USER_ENTERED`;
       
       // Отправляем запрос к Google Sheets API
       const response = await fetch(apiUrl, {
