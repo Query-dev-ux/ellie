@@ -41,7 +41,6 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [extractedUserId, setExtractedUserId] = useState<number | null>(null);
   const [extractedUsername, setExtractedUsername] = useState<string | null>(null);
-  const [launchDiagnostics, setLaunchDiagnostics] = useState<Record<string, any>>({});
   const { logAppOpen, logAppClose, isInitialized: isLoggingInitialized } = useAppLogging();
 
   // Функция для логирования открытия приложения
@@ -169,7 +168,6 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
       try {
         // Соберем информацию о способе запуска
         const diagnostics = detectLaunchMethod();
-        setLaunchDiagnostics(diagnostics);
         console.log('Launch diagnostics:', diagnostics);
         
         // Проверяем, есть ли данные пользователя в URL-параметрах
