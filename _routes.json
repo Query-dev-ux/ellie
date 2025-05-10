@@ -5,6 +5,10 @@
       "handle": "static"
     },
     {
+      "src": "/api/logAppEvent",
+      "dest": "functions/logAppEvent.js"
+    },
+    {
       "src": "/.*",
       "dest": "/index.html"
     }

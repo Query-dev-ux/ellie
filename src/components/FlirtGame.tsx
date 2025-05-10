@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
+import { useAppLogging } from '../hooks/useAppLogging';
 import WelcomeScreen from './WelcomeScreen';
 import StyledMessage from './StyledMessage';
 import StyledOptionButton from './StyledOptionButton';
@@ -177,6 +178,7 @@ const FlirtGame: React.FC = () => {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { tg } = useTelegram();
+  const { logUserAction } = useAppLogging();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -241,6 +243,13 @@ const FlirtGame: React.FC = () => {
   }, [showChat]);
 
   const handleOptionSelected = (option: Option) => {
+    // Логируем действие пользователя
+    logUserAction('option_selected', { 
+      option: option.text, 
+      stage: currentStage,
+      score: option.response.score || 0 
+    }).catch(console.error);
+
     // Добавляем выбранный вариант как сообщение от пользователя
     const updatedMessages = [...messages];
     updatedMessages.push({ text: option.text, sender: 'system' });
@@ -270,17 +279,21 @@ const FlirtGame: React.FC = () => {
   };
 
   const handleNextStage = () => {
-    const stage = gameScenario.stages[currentStage];
-    if (stage.nextStage) {
-      setCurrentStage(stage.nextStage);
-      const nextStage = gameScenario.stages[stage.nextStage];
-      
+    // Логируем переход к следующему этапу
+    logUserAction('next_stage', { 
+      fromStage: currentStage,
+      toStage: gameScenario.stages[currentStage].nextStage || 'unknown' 
+    }).catch(console.error);
+
+    setShowNextButton(false);
+    const nextStage = gameScenario.stages[currentStage].nextStage;
+    if (nextStage) {
+      setCurrentStage(nextStage);
       // Отправляем сообщение следующего этапа
-      setMessages(prev => [...prev, { text: nextStage.message, sender: 'ellie' }]);
-      setShowNextButton(false);
+      setMessages(prev => [...prev, { text: gameScenario.stages[nextStage].message, sender: 'ellie' }]);
       
       // Если это финальный этап, сразу устанавливаем gameFinished в true
-      if (stage.nextStage === gameScenario.finalStage) {
+      if (nextStage === gameScenario.finalStage) {
         setTimeout(() => setGameFinished(true), 500);
       }
     }
@@ -297,8 +310,23 @@ const FlirtGame: React.FC = () => {
   const maxScore = 30;
   const progress = Math.min((totalScore / maxScore) * 100, 100);
 
+  const handleStartChat = () => {
+    // Логируем начало чата
+    logUserAction('start_chat').catch(console.error);
+    
+    // Остальной код функции
+    setShowChat(true);
+  };
+
+  // Логируем завершение игры
+  useEffect(() => {
+    if (gameFinished) {
+      logUserAction('game_finished', { totalScore }).catch(console.error);
+    }
+  }, [gameFinished, totalScore, logUserAction]);
+
   if (!showChat) {
-    return <WelcomeScreen onStart={() => setShowChat(true)} />;
+    return <WelcomeScreen onStart={handleStartChat} />;
   }
 
   return (
