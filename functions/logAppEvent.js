@@ -50,16 +50,19 @@ export async function onRequest(context) {
     // Получение данных для логирования
     let { event, userId, username, timestamp, additionalData } = bodyData;
     
-    // Преобразование события в русский формат, если оно на английском
+    // Преобразование события в новый лаконичный формат, если оно в старом формате
     // Это нужно для обратной совместимости
-    if (event === 'app_opened') {
-      event = 'приложение_открыто';
-    } else if (event === 'app_closed') {
-      event = 'приложение_закрыто';
-    } else if (event === 'app_error') {
-      event = 'ошибка_приложения';
-    } else if (event.startsWith('user_action:')) {
-      event = 'действие:' + event.substring(12);
+    if (event === 'app_opened' || event === 'приложение_открыто') {
+      event = 'open_app';
+    } else if (event === 'app_closed' || event === 'приложение_закрыто') {
+      event = 'close_app';
+    } else if (event === 'app_error' || event === 'ошибка_приложения') {
+      event = 'error_app';
+    } else if (event.startsWith('user_action:') || event.startsWith('действие:')) {
+      // Убираем префикс
+      event = event.includes('user_action:') 
+        ? event.substring(12) 
+        : event.substring(9); // длина 'действие:'
     }
     
     console.log('[logAppEvent] Log data received:', { event, userId, username });
