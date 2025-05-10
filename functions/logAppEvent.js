@@ -158,8 +158,8 @@ export async function onRequest(context) {
       const additionalDataCopy = { ...additionalData };
       
       // Извлекаем данные о языке, стране и устройстве
-      let country = 'unknown';
-      let device = 'unknown';
+      let country = '-';
+      let device = '-';
       
       if (additionalDataCopy) {
         // Получаем язык/локаль из navigator.language
