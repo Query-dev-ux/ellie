@@ -58,6 +58,7 @@ export interface TelegramWebApp {
     query_id?: string;
     auth_date?: number;
     hash?: string;
+    start_param?: string; // Параметр, переданный при запуске мини-приложения
   };
 }
 

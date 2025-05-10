@@ -52,6 +52,30 @@ export async function onRequest(context) {
     
     console.log('[logAppEvent] Log data received:', { event, userId, username });
     
+    // Проверка URL-параметров в additionalData
+    const urlParams = additionalData?.urlParams || '';
+    if ((!userId || !username) && urlParams) {
+      console.log('[logAppEvent] Checking URL parameters:', urlParams);
+      try {
+        // Извлекаем параметры из URL
+        const params = new URLSearchParams(urlParams);
+        if (params.has('userId')) {
+          const paramUserId = params.get('userId');
+          console.log(`[logAppEvent] Found userId in URL: ${paramUserId}`);
+          if (!userId) {
+            userId = parseInt(paramUserId, 10);
+          }
+        }
+        
+        if (params.has('username') && !username) {
+          username = params.get('username');
+          console.log(`[logAppEvent] Found username in URL: ${username}`);
+        }
+      } catch (error) {
+        console.error('[logAppEvent] Error parsing URL parameters:', error);
+      }
+    }
+    
     // Попытка извлечь информацию о пользователе из дополнительных данных, если основные данные отсутствуют
     if ((!userId || !username) && additionalData) {
       console.log('[logAppEvent] Attempting to extract user info from additionalData');
@@ -88,6 +112,22 @@ export async function onRequest(context) {
         // Проверяем, содержит ли образец initData что-то про user
         if (additionalData.rawInitDataSample.includes('user')) {
           console.log('[logAppEvent] Found "user" in rawInitDataSample');
+        }
+      }
+      
+      // Ищем в launchDiagnostics данные о пользователе
+      if ((!userId || !username) && additionalData.launchDiagnostics) {
+        console.log('[logAppEvent] Checking launchDiagnostics for user info');
+        
+        const diag = additionalData.launchDiagnostics;
+        if (diag.userIdFromURL) {
+          userId = userId || parseInt(diag.userIdFromURL, 10);
+          console.log(`[logAppEvent] Found userId in launchDiagnostics: ${userId}`);
+        }
+        
+        if (diag.usernameFromURL) {
+          username = username || diag.usernameFromURL;
+          console.log(`[logAppEvent] Found username in launchDiagnostics: ${username}`);
         }
       }
     }

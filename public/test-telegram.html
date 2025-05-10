@@ -34,10 +34,33 @@
       border-bottom: 1px solid #eee;
       padding-bottom: 20px;
     }
+    .warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 10px;
+      margin: 15px 0;
+    }
+    .error {
+      background-color: #f8d7da;
+      border-left: 4px solid #dc3545;
+      padding: 10px;
+      margin: 15px 0;
+    }
+    .info {
+      background-color: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+      padding: 10px;
+      margin: 15px 0;
+    }
   </style>
 </head>
 <body>
   <h1>Тест Telegram WebApp</h1>
+
+  <div class="section">
+    <h2>Способ запуска</h2>
+    <pre id="launchMethod">Определение способа запуска...</pre>
+  </div>
   
   <div class="section">
     <h2>Данные инициализации</h2>
@@ -66,12 +89,69 @@
   <script>
     // Проверяем доступность Telegram WebApp
     const tg = window.Telegram?.WebApp;
+    
+    // Определение способа запуска
+    const launchMethodOutput = document.getElementById('launchMethod');
+    
+    function detectLaunchMethod() {
+      if (!tg) {
+        launchMethodOutput.className = 'error';
+        return 'Telegram WebApp недоступен! Скорее всего, страница открыта в обычном браузере, а не через Telegram.';
+      }
+      
+      let result = '';
+      
+      // Проверяем был ли переход с внутренней платформы Telegram
+      result += `Платформа: ${navigator.platform}\n`;
+      result += `User Agent: ${navigator.userAgent}\n`;
+      result += `Telegram WebApp API доступен: Да\n`;
+      result += `Версия Telegram WebApp: ${tg.version || 'Неизвестно'}\n\n`;
+      
+      // Проверяем наличие initData
+      if (tg.initData && tg.initData.length > 0) {
+        result += `initData присутствует: Да (${tg.initData.length} символов)\n`;
+        launchMethodOutput.className = 'info';
+      } else {
+        result += `initData присутствует: Нет\n`;
+        result += `\nПРЕДУПРЕЖДЕНИЕ: Отсутствие initData указывает на то, что мини-приложение запущено некорректно!\n`;
+        result += `Возможные причины:\n`;
+        result += `1. Приложение открыто через прямую ссылку, а не через бота\n`;
+        result += `2. Проблема с настройками бота в BotFather\n`;
+        result += `3. Возможная несовместимость с версией Telegram\n`;
+        launchMethodOutput.className = 'warning';
+      }
+      
+      // Проверяем наличие данных пользователя
+      if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        result += `Данные пользователя доступны: Да\n`;
+      } else {
+        result += `Данные пользователя доступны: Нет\n`;
+        
+        // Если initData есть, но данных пользователя нет
+        if (tg.initData && tg.initData.length > 0) {
+          result += `\nНЕОБЫЧНАЯ СИТУАЦИЯ: initData присутствует, но данные пользователя отсутствуют.\n`;
+          result += `Это может указывать на проблему с настройками бота или на то, что в боте не включена передача данных пользователя.\n`;
+        }
+      }
+      
+      // Проверяем видимые параметры запуска
+      const queryParams = new URLSearchParams(window.location.search);
+      if (queryParams.toString()) {
+        result += `\nПараметры URL: ${queryParams.toString()}\n`;
+      }
+      
+      return result;
+    }
+    
+    // Заполняем информацию о способе запуска
+    launchMethodOutput.textContent = detectLaunchMethod();
+    
     if (tg) {
       console.log('Telegram WebApp доступен');
       tg.ready();
     } else {
       console.warn('Telegram WebApp недоступен');
-      document.body.innerHTML = '<h1>Ошибка</h1><p>Telegram WebApp недоступен. Откройте страницу через Telegram.</p>';
+      document.body.innerHTML = '<h1>Ошибка</h1><p class="error">Telegram WebApp недоступен. Откройте страницу через Telegram.</p>';
     }
 
     // Функция для безопасного отображения объектов
@@ -111,7 +191,8 @@
         const user = tg.initDataUnsafe?.user;
         const info = {
           userAvailable: !!user,
-          userData: user || 'пользователь не найден'
+          userData: user || 'пользователь не найден',
+          startParam: tg.initDataUnsafe?.start_param || null
         };
         output.textContent = safeStringify(info);
       } else {
@@ -193,6 +274,14 @@
             extractedUsername: username,
             hasInitData: !!tg?.initData,
             initDataLength: tg?.initData?.length || 0,
+            launchInfo: {
+              userAgent: navigator.userAgent,
+              platform: navigator.platform,
+              search: window.location.search,
+              startParam: tg?.initDataUnsafe?.start_param || null,
+              isInIframe: window !== window.parent,
+              referrer: document.referrer
+            },
             rawInitDataSample: tg?.initData 
               ? (tg.initData.length > 50 ? tg.initData.substring(0, 50) + '...' : tg.initData) 
               : null

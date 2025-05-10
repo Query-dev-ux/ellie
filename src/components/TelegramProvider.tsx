@@ -10,11 +10,38 @@ export const TelegramContext = React.createContext<{
   tg: TelegramWebApp | null;
 }>({ tg: null });
 
+// Добавляем определение для process.env, чтобы TypeScript не ругался
+declare const process: {
+  env: {
+    NODE_ENV: 'development' | 'production' | 'test';
+  };
+};
+
+// Функция для извлечения данных пользователя из URL-параметров
+const extractUserFromQueryParams = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const userId = urlParams.get('userId');
+  const username = urlParams.get('username');
+  
+  if (userId) {
+    console.log('Extracted userId from URL parameters:', userId);
+    return {
+      id: parseInt(userId, 10),
+      username: username || undefined,
+      first_name: 'User',
+      source: 'url_params'
+    };
+  }
+  
+  return null;
+};
+
 const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const [extractedUserId, setExtractedUserId] = useState<number | null>(null);
   const [extractedUsername, setExtractedUsername] = useState<string | null>(null);
+  const [launchDiagnostics, setLaunchDiagnostics] = useState<Record<string, any>>({});
   const { logAppOpen, logAppClose, isInitialized: isLoggingInitialized } = useAppLogging();
 
   // Функция для логирования открытия приложения
@@ -60,6 +87,16 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
       }
     }
     
+    // Если данные пользователя все еще недоступны, пробуем получить их из URL-параметров
+    if (!userData && !tg.initDataUnsafe?.user && (extractedUserId !== null || extractedUsername !== null)) {
+      userData = {
+        id: extractedUserId,
+        username: extractedUsername,
+        source: 'url_params'
+      };
+      console.log('Using user data from URL parameters:', userData);
+    }
+    
     try {
       await logAppOpen({
         platform: navigator.platform,
@@ -76,18 +113,94 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
         hasInitData: !!tg.initData,
         initDataLength: tg.initData?.length || 0,
         userDataStatus: tg.initDataUnsafe?.user ? 'available' : 'unavailable',
-        rawInitDataSample: tg.initData ? (tg.initData.length > 50 ? tg.initData.substring(0, 50) + '...' : tg.initData) : null
+        rawInitDataSample: tg.initData ? (tg.initData.length > 50 ? tg.initData.substring(0, 50) + '...' : tg.initData) : null,
+        // Добавляем информацию о запуске приложения
+        launchDiagnostics,
+        // Добавляем информацию о параметрах URL
+        urlParams: window.location.search
       });
       console.log('App open logged successfully');
     } catch (error) {
       console.error('Failed to log app open:', error);
     }
-  }, [tg, logAppOpen, extractedUserId, extractedUsername]);
+  }, [tg, logAppOpen, extractedUserId, extractedUsername, launchDiagnostics]);
+
+  // Функция для определения метода запуска
+  const detectLaunchMethod = useCallback(() => {
+    // Собираем информацию о запуске
+    const diagnostics: Record<string, any> = {
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      search: window.location.search,
+      referrer: document.referrer,
+      isInIframe: window !== window.parent,
+      isHttps: window.location.protocol === 'https:',
+      screenSize: {
+        width: window.screen.width,
+        height: window.screen.height,
+        availWidth: window.screen.availWidth,
+        availHeight: window.screen.availHeight,
+      },
+      isMobile: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent),
+      platform: navigator.platform,
+      userAgent: navigator.userAgent,
+    };
+    
+    // Проверяем параметры URL для извлечения userId и username
+    const urlParams = new URLSearchParams(window.location.search);
+    diagnostics.hasUserIdParam = urlParams.has('userId');
+    diagnostics.hasUsernameParam = urlParams.has('username');
+    if (urlParams.has('userId')) {
+      diagnostics.userIdFromURL = urlParams.get('userId');
+    }
+    if (urlParams.has('username')) {
+      diagnostics.usernameFromURL = urlParams.get('username');
+    }
+    
+    // Определяем, запущено ли приложение через Telegram
+    if (window.Telegram?.WebApp) {
+      diagnostics.isTelegramAvailable = true;
+      diagnostics.telegramVersion = window.Telegram.WebApp.version || 'unknown';
+      diagnostics.hasInitData = !!window.Telegram.WebApp.initData;
+      diagnostics.initDataLength = window.Telegram.WebApp.initData?.length || 0;
+      diagnostics.hasUser = !!window.Telegram.WebApp.initDataUnsafe?.user;
+      
+      // Проверка параметров URL
+      diagnostics.hasStartApp = urlParams.has('startapp') || urlParams.has('start_app');
+      diagnostics.hasStartParam = urlParams.has('start_param');
+      diagnostics.urlParamsList = Array.from(urlParams.keys());
+      
+      // Получаем start_param из initDataUnsafe, если он там есть
+      // Используем as any, чтобы обойти проблему с типами
+      const initDataUnsafe = window.Telegram.WebApp.initDataUnsafe as any;
+      if (initDataUnsafe && initDataUnsafe.start_param) {
+        diagnostics.startParamFromInitData = initDataUnsafe.start_param;
+      }
+    } else {
+      diagnostics.isTelegramAvailable = false;
+      diagnostics.isBrowser = true;
+    }
+    
+    return diagnostics;
+  }, []);
 
   // Эффект для инициализации Telegram WebApp
   useEffect(() => {
     const initializeTelegramWebApp = () => {
       try {
+        // Соберем информацию о способе запуска
+        const diagnostics = detectLaunchMethod();
+        setLaunchDiagnostics(diagnostics);
+        console.log('Launch diagnostics:', diagnostics);
+        
+        // Проверяем, есть ли данные пользователя в URL-параметрах
+        const userFromParams = extractUserFromQueryParams();
+        if (userFromParams) {
+          setExtractedUserId(userFromParams.id);
+          setExtractedUsername(userFromParams.username || null);
+          console.log('Set user data from URL parameters:', userFromParams);
+        }
+        
         const telegram = window?.Telegram?.WebApp;
         if (telegram) {
           console.log('Telegram WebApp is available, initializing...');
@@ -99,6 +212,17 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
           console.log('Raw initData:', telegram.initData);
           console.log('initData length:', telegram.initData?.length || 0);
           console.log('InitDataUnsafe object:', telegram.initDataUnsafe);
+          
+          // Если initData отсутствует, но Telegram доступен, это может указывать на проблему
+          if (!telegram.initData) {
+            console.warn('Telegram WebApp is available but initData is missing!');
+            console.warn('This may indicate that the app was not launched properly via Telegram bot');
+            
+            // Выводим предупреждение для пользователя в режиме разработки
+            if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+              alert('Внимание! Приложение запущено без данных инициализации Telegram. Для правильной работы запустите приложение через бота в Telegram.');
+            }
+          }
           
           // Пытаемся извлечь данные пользователя из initData, если они недоступны в initDataUnsafe
           if (!telegram.initDataUnsafe?.user && telegram.initData) {
@@ -140,6 +264,12 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
           }
         } else {
           console.warn('Telegram WebApp is not available');
+          
+          // Проверяем, запущено ли приложение в среде Telegram
+          if (window.location.host.includes('t.me') || /Telegram/i.test(navigator.userAgent)) {
+            console.log('App may be running in Telegram but WebApp API is not available');
+          }
+          
           setIsInitialized(true); // Отмечаем, что инициализация завершена, даже если не удалась
         }
       } catch (error) {
@@ -150,7 +280,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
 
     // Инициализируем Telegram WebApp
     initializeTelegramWebApp();
-  }, []);
+  }, [detectLaunchMethod]);
 
   // Эффект для логирования открытия приложения после инициализации
   useEffect(() => {
@@ -170,7 +300,9 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
         closeTime: new Date().toISOString(),
         sessionDuration: Math.floor((Date.now() - (tg.initDataUnsafe?.auth_date || 0) * 1000) / 1000),
         extractedUserId,
-        extractedUsername
+        extractedUsername,
+        launchDiagnostics,
+        urlParams: window.location.search
       }).catch(error => console.error('Failed to log app close:', error));
     };
     
@@ -180,7 +312,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [tg, logAppClose, extractedUserId, extractedUsername]);
+  }, [tg, logAppClose, extractedUserId, extractedUsername, launchDiagnostics]);
 
   return (
     <TelegramContext.Provider value={{ tg }}>
