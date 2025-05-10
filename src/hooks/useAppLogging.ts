@@ -166,7 +166,7 @@ export const useAppLogging = () => {
       // Проверка наличия данных пользователя
       if (!userId && !username && event !== 'app_error') {
         console.warn('User data not available, logging app_error instead');
-        return await logEvent('app_error', { 
+        return await logEvent('ошибка_приложения', { 
           originalEvent: event,
           error: 'User data not available',
           additionalData: enhancedAdditionalData 
@@ -229,13 +229,13 @@ export const useAppLogging = () => {
   // Логирование открытия мини-приложения
   const logAppOpen = async (additionalData?: Record<string, any>): Promise<boolean> => {
     console.log('Logging app_opened event');
-    return await logEvent('app_opened', additionalData);
+    return await logEvent('приложение_открыто', additionalData);
   };
 
   // Логирование закрытия мини-приложения
   const logAppClose = async (additionalData?: Record<string, any>): Promise<boolean> => {
     console.log('Logging app_closed event');
-    return await logEvent('app_closed', additionalData);
+    return await logEvent('приложение_закрыто', additionalData);
   };
 
   // Логирование действий пользователя
@@ -244,7 +244,7 @@ export const useAppLogging = () => {
     actionData?: Record<string, any>
   ): Promise<boolean> => {
     console.log(`Logging user action: ${action}`);
-    return await logEvent(`user_action:${action}`, actionData);
+    return await logEvent(`действие:${action}`, actionData);
   };
 
   return {
