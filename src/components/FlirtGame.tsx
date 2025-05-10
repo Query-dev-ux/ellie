@@ -300,6 +300,9 @@ const FlirtGame: React.FC = () => {
   };
 
   const handleOfferClick = () => {
+    // Логируем клик по кнопке оффера
+    logUserAction('offer_click', { totalScore }).catch(console.error);
+    
     if (tg) {
       // Здесь должен быть ваш URL для перехода к дейтинг-сервису
       tg.openLink('https://example.com/dating');
