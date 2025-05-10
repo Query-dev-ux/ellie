@@ -7,55 +7,75 @@ const SHEET_NAME = 'TelegramBotLogs'; // Название листа для ло
 
 /**
  * Функция для логирования событий мини-приложения в Google Sheets
- * Может быть развернута как Cloudflare Worker, Azure Function, или Google Cloud Function
  */
-module.exports = async function(context, req) {
+export async function onRequest(context) {
+  const { request, env } = context;
+  
   // Установка CORS заголовков для доступа с мини-приложения
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
   };
 
   // Обработка preflight запросов OPTIONS
-  if (req.method === 'OPTIONS') {
-    context.res = {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
       status: 204,
       headers
-    };
-    return;
+    });
   }
 
   try {
-    // Проверка наличия тела запроса
-    if (!req.body) {
-      context.res = {
-        status: 400,
-        headers,
-        body: JSON.stringify({ error: 'Request body is required' })
-      };
-      return;
+    console.log('Processing log request');
+    
+    // Парсим тело запроса
+    let bodyData;
+    try {
+      bodyData = await request.json();
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { status: 400, headers }
+      );
+    }
+
+    // Проверка наличия обязательных данных
+    if (!bodyData || !bodyData.event) {
+      return new Response(
+        JSON.stringify({ error: 'Event name is required' }),
+        { status: 400, headers }
+      );
     }
 
     // Получение данных для логирования
-    const { event, userId, username, timestamp, additionalData } = req.body;
+    const { event, userId, username, timestamp, additionalData } = bodyData;
+    
+    console.log('Log data received:', { event, userId, username });
 
-    if (!event) {
-      context.res = {
-        status: 400,
-        headers,
-        body: JSON.stringify({ error: 'Event name is required' })
-      };
-      return;
+    // Проверка наличия переменных окружения
+    if (!env.GOOGLE_SERVICE_ACCOUNT_EMAIL || !env.GOOGLE_PRIVATE_KEY) {
+      console.error('Missing environment variables for Google Service Account');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Server configuration error', 
+          message: 'Google Service Account credentials not configured'
+        }),
+        { status: 500, headers }
+      );
     }
 
-    // Данные для сервисного аккаунта Google (должны быть безопасно сохранены в переменных окружения)
+    // Данные для сервисного аккаунта Google
     const serviceAccountAuth = new JWT({
-      email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      email: env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      key: env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
+    console.log('Connecting to Google Sheets');
+    
     // Подключение к Google Sheets
     const doc = new GoogleSpreadsheet(SPREADSHEET_ID, serviceAccountAuth);
     await doc.loadInfo();
@@ -63,6 +83,7 @@ module.exports = async function(context, req) {
     // Получение или создание листа для логов
     let sheet = doc.sheetsByTitle[SHEET_NAME];
     if (!sheet) {
+      console.log('Sheet not found, creating new one');
       // Если лист не существует, создаем его с правильными заголовками
       sheet = await doc.addSheet({ title: SHEET_NAME, headerValues: [
         'Date', 'User ID', 'Username', 'Action', 'Source', 'Additional Data'
@@ -79,23 +100,27 @@ module.exports = async function(context, req) {
       'Additional Data': additionalData ? JSON.stringify(additionalData) : ''
     };
 
+    console.log('Adding row to sheet:', rowData);
+    
     // Добавление строки в таблицу
     await sheet.addRow(rowData);
 
     // Возвращаем успешный ответ
-    context.res = {
-      status: 200,
-      headers,
-      body: JSON.stringify({ success: true, message: 'Event logged successfully' })
-    };
+    return new Response(
+      JSON.stringify({ success: true, message: 'Event logged successfully' }),
+      { status: 200, headers }
+    );
   } catch (error) {
     console.error('Error logging event:', error);
     
     // Возвращаем ошибку
-    context.res = {
-      status: 500,
-      headers,
-      body: JSON.stringify({ error: 'Failed to log event', details: error.message })
-    };
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to log event', 
+        details: error.message,
+        stack: error.stack
+      }),
+      { status: 500, headers }
+    );
   }
-}; 
+} 

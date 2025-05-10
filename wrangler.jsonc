@@ -3,5 +3,22 @@
   "compatibility_date": "2025-05-06",
   "assets": {
     "directory": "./dist"
+  },
+  "vars": {
+    "ENVIRONMENT": "production"
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "ENVIRONMENT": "production"
+      },
+      "secrets": ["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_PRIVATE_KEY"]
+    },
+    "development": {
+      "vars": {
+        "ENVIRONMENT": "development"
+      },
+      "secrets": ["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_PRIVATE_KEY"]
+    }
   }
 } 

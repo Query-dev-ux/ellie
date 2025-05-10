@@ -35,6 +35,7 @@ export interface TelegramWebApp {
   backgroundColor: string;
   textColor: string;
   headerColor: string;
+  version?: string;
   themeParams: {
     bg_color: string;
     text_color: string;
@@ -54,7 +55,7 @@ export interface TelegramWebApp {
       language_code?: string;
     };
     query_id?: string;
-    auth_date?: string;
+    auth_date?: number;
     hash?: string;
   };
 }
