@@ -9,7 +9,7 @@ const StatsDisplay: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
-  const { getCollection, loading, error: firestoreError } = useFirestore();
+  const { getCollection, error: firestoreError } = useFirestore();
   const { user } = useTelegram();
 
   // Загружаем статистику пользователя из Firestore

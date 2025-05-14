@@ -10,7 +10,7 @@ export interface UserAction {
 // Модель для хранения результата игры
 export interface GameResult {
   id?: string;
-  userId: string;
+  userId: string | number;
   username?: string;
   totalScore: number;
   stages: {
@@ -32,7 +32,7 @@ export interface GameResult {
 // Модель для хранения пользовательских настроек
 export interface UserSettings {
   id?: string;
-  userId: string;
+  userId: string | number;
   username?: string;
   language?: string;
   theme?: 'light' | 'dark' | 'system';

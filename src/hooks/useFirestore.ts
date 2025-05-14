@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   collection, 
   doc, 
@@ -15,8 +15,7 @@ import {
 } from 'firebase/firestore';
 import type { 
   DocumentData,
-  CollectionReference,
-  DocumentReference
+  CollectionReference
 } from 'firebase/firestore';
 import { db, analytics } from '../firebase/config';
 import { useTelegram } from './useTelegram';
