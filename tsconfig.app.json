@@ -24,7 +24,10 @@
     
     /* JSON import */
     "resolveJsonModule": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    
+    /* Поддержка Node.js для process.env */
+    "types": ["node"]
   },
-  "include": ["src", "creds"]
+  "include": ["src"]
 }
