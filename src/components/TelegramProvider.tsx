@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import type { TelegramWebApp } from '../types/telegram';
+import type { TelegramWebApp, EnhancedUser } from '../types/telegram';
 import { useAppLogging } from '../hooks/useAppLogging';
+import { analytics } from '../firebase/config';
+import { logEvent } from 'firebase/analytics';
+import { useUrlParams } from '../hooks/useUrlParams';
 
 type TelegramProviderProps = {
   children: React.ReactNode;
@@ -8,7 +11,13 @@ type TelegramProviderProps = {
 
 export const TelegramContext = React.createContext<{
   tg: TelegramWebApp | null;
-}>({ tg: null });
+  user: EnhancedUser | null;
+  urlParams: ReturnType<typeof useUrlParams>;
+}>({ 
+  tg: null,
+  user: null,
+  urlParams: { userId: '', actions: [] }
+});
 
 // Добавляем определение для process.env, чтобы TypeScript не ругался
 declare const process: {
@@ -20,13 +29,23 @@ declare const process: {
 // Функция для извлечения данных пользователя из URL-параметров
 const extractUserFromQueryParams = () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const userId = urlParams.get('userId');
-  const username = urlParams.get('username');
+  
+  // Сначала проверяем новые параметры с префиксами
+  let userId = urlParams.get('a_userId');
+  let username = urlParams.get('b_username');
+  
+  // Если не нашли, проверяем старые параметры
+  if (!userId) {
+    userId = urlParams.get('userId');
+    if (!username) {
+      username = urlParams.get('username');
+    }
+  }
   
   if (userId) {
     console.log('Extracted userId from URL parameters:', userId);
     return {
-      id: parseInt(userId, 10),
+      id: userId,
       username: username || undefined,
       first_name: 'User',
       source: 'url_params'
@@ -38,10 +57,31 @@ const extractUserFromQueryParams = () => {
 
 const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
   const [tg, setTg] = useState<TelegramWebApp | null>(null);
+  const [user, setUser] = useState<EnhancedUser | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [extractedUserId, setExtractedUserId] = useState<number | null>(null);
+  const [extractedUserId, setExtractedUserId] = useState<string | null>(null);
   const [extractedUsername, setExtractedUsername] = useState<string | null>(null);
   const { logAppOpen, logAppClose, isInitialized: isLoggingInitialized } = useAppLogging();
+  const urlParams = useUrlParams();
+  
+  // Функция для отправки события в Firebase Analytics
+  const sendAnalyticsEvent = useCallback((eventName: string, eventParams?: Record<string, any>) => {
+    if (analytics && typeof window !== 'undefined') {
+      try {
+        logEvent(analytics, eventName, {
+          user_id: user?.id?.toString() || urlParams.userId,
+          username: user?.username || urlParams.username,
+          country: urlParams.country || user?.country,
+          device: urlParams.device || user?.device,
+          source: urlParams.source || user?.source || 'direct',
+          ...eventParams
+        });
+        console.log(`Analytics event sent: ${eventName}`, eventParams);
+      } catch (err) {
+        console.error('Failed to send analytics event:', err);
+      }
+    }
+  }, [analytics, user, urlParams]);
 
   // Функция для логирования открытия приложения
   const handleAppOpen = useCallback(async () => {
@@ -74,7 +114,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
           
           // Сохраняем извлеченные данные для дальнейшего использования
           if (userData && userData.id) {
-            setExtractedUserId(userData.id);
+            setExtractedUserId(userData.id.toString());
             setExtractedUsername(userData.username || null);
           }
         } else {
@@ -87,34 +127,67 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     }
     
     // Если данные пользователя все еще недоступны, пробуем получить их из URL-параметров
-    if (!userData && !tg.initDataUnsafe?.user && (extractedUserId !== null || extractedUsername !== null)) {
-      userData = {
-        id: extractedUserId,
-        username: extractedUsername,
-        source: 'url_params'
-      };
-      console.log('Using user data from URL parameters:', userData);
+    if (!userData && !tg.initDataUnsafe?.user) {
+      if (urlParams.userId) {
+        // Используем новые параметры URL
+        userData = {
+          id: urlParams.userId,
+          username: urlParams.username,
+          country: urlParams.country,
+          device: urlParams.device,
+          source: urlParams.source,
+          actions: urlParams.actions
+        };
+        console.log('Using user data from new URL parameters:', userData);
+      } else if (extractedUserId !== null || extractedUsername !== null) {
+        // Используем старые параметры URL
+        userData = {
+          id: extractedUserId,
+          username: extractedUsername,
+          source: 'url_params'
+        };
+        console.log('Using user data from old URL parameters:', userData);
+      }
     }
     
+    // Создаем объект пользователя
+    const enhancedUser: EnhancedUser = tg.initDataUnsafe?.user || userData as any || {
+      id: urlParams.userId || extractedUserId || 'unknown',
+      first_name: 'User',
+      username: urlParams.username || extractedUsername,
+      country: urlParams.country,
+      device: urlParams.device,
+      source: urlParams.source || (userData as any)?.source || 'direct',
+      actions: urlParams.actions
+    };
+    
+    // Сохраняем данные пользователя
+    setUser(enhancedUser);
+    
     try {
-      // Используем userId и username от пользователя Telegram если доступны,
-      // иначе используем данные из URL параметров
-      const userId = tg.initDataUnsafe?.user?.id || userData?.id || extractedUserId;
-      const username = tg.initDataUnsafe?.user?.username || userData?.username || extractedUsername;
-      
+      // Логируем открытие приложения
       await logAppOpen({
-        // Передаем данные о платформе, устройстве и стране
         platform: navigator.platform,
         userAgent: navigator.userAgent,
-        country: navigator.language,  // Используем полный код локали вместо language
-        userId: userId,  // Явно передаем userId
-        username: username  // Явно передаем username
+        country: urlParams.country || navigator.language,
+        userId: enhancedUser.id.toString(),
+        username: enhancedUser.username,
+        device: urlParams.device,
+        source: urlParams.source
       });
-      console.log('App open logged successfully with user data:', { userId, username });
+      
+      // Отправляем событие в Firebase Analytics
+      sendAnalyticsEvent('app_open', {
+        platform: navigator.platform,
+        userAgent: navigator.userAgent,
+        language: navigator.language
+      });
+      
+      console.log('App open logged successfully with user data:', enhancedUser);
     } catch (error) {
       console.error('Failed to log app open:', error);
     }
-  }, [tg, logAppOpen, extractedUserId, extractedUsername]);
+  }, [tg, logAppOpen, extractedUserId, extractedUsername, urlParams, sendAnalyticsEvent]);
 
   // Функция для определения метода запуска
   const detectLaunchMethod = useCallback(() => {
@@ -218,7 +291,7 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
                 
                 // Сохраняем извлеченные данные для дальнейшего использования
                 if (userData && userData.id) {
-                  setExtractedUserId(userData.id);
+                  setExtractedUserId(userData.id.toString());
                   setExtractedUsername(userData.username || null);
                 }
               } else {
@@ -295,8 +368,15 @@ const TelegramProvider: React.FC<TelegramProviderProps> = ({ children }) => {
     };
   }, [tg, logAppClose, extractedUserId, extractedUsername]);
 
+  // Модифицируем контекст, чтобы включить user и urlParams
+  const contextValue = {
+    tg,
+    user,
+    urlParams
+  };
+
   return (
-    <TelegramContext.Provider value={{ tg }}>
+    <TelegramContext.Provider value={contextValue}>
       {children}
     </TelegramContext.Provider>
   );

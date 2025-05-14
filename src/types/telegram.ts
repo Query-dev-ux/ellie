@@ -1,3 +1,19 @@
+import type { UserAction } from './models';
+
+// Расширенный интерфейс пользователя
+export interface EnhancedUser {
+  id: string | number; // Может быть строкой из URL или числом из Telegram
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+  // Дополнительные поля
+  country?: string;
+  device?: string;
+  source?: string;
+  actions?: UserAction[];
+}
+
 // Интерфейс для Telegram WebApp
 export interface TelegramWebApp {
   ready: () => void;

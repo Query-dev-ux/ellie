@@ -1,76 +1,155 @@
-# Ellie - Telegram мини-приложение 
+# Telegram Mini App с Firebase Firestore и Analytics
 
-Ellie - это Telegram мини-приложение для флирт-игры с AI-девушкой. Приложение помогает пользователям тренировать навыки флирта в игровой форме.
+## О приложении
+Мини-приложение для Telegram, которое представляет собой игру-симулятор флирта. Приложение использует Firebase Firestore для хранения данных пользователей, результатов игры и настроек, а также Firebase Analytics для аналитики.
 
-## Особенности
+## Установка и настройка
 
-- Стильный и современный UI с анимациями
-- Интерактивный чат с AI-девушкой Ellie
-- Система оценки навыков флирта
-- Несколько ситуаций для тренировки
-- Полноценная интеграция с Telegram Mini Apps
-
-## Технологии
-
-- React
-- Vite
-- TypeScript
-- Tailwind CSS 4.0
-- Telegram Mini Apps API
-
-## Запуск проекта
-
-1. Клонировать репозиторий
-   ```
-   git clone https://github.com/Query-dev-ux/ellie.git
-   cd ellie
-   ```
-
-2. Установить зависимости
-   ```
-   npm install
-   ```
-
-3. Запустить в режиме разработки
-   ```
-   npm run dev
-   ```
-
-4. Сборка для продакшена
-   ```
-   npm run build
-   ```
-
-## Структура проекта
-
-- `src/components` - React компоненты
-- `src/hooks` - Пользовательские хуки
-- `src/assets` - Статические ресурсы
-- `public` - Публичные файлы
-
-## Диагностика и отладка
-
-### Тестовая страница Telegram WebApp
-
-Для диагностики проблем с Telegram WebApp API и получением данных пользователя создана специальная тестовая страница:
-
-```
-/test-telegram
+### Шаг 1: Клонирование репозитория
+```bash
+git clone <url-репозитория>
+cd <директория-проекта>
 ```
 
-Эта страница позволяет:
-- Проверить наличие и содержание initData
-- Посмотреть доступные данные пользователя
-- Разобрать параметры initData
-- Отправить тестовый лог в Google Sheets
+### Шаг 2: Установка зависимостей
+```bash
+npm install
+```
 
-### Обновления в системе логирования
+### Шаг 3: Настройка Firebase
 
-В системе логирования реализовано:
-- Извлечение данных пользователя напрямую из строки initData, если они недоступны через initDataUnsafe.user
-- Добавление подробной диагностической информации в логи
-- Улучшенная обработка данных пользователя на сервере
+Firebase уже настроен со следующей конфигурацией:
 
-## Лицензия
+```typescript
+// src/firebase/config.ts
+const firebaseConfig = {
+  apiKey: "AIzaSyBZii_8SQwkdzKaRAT4lJZ-zgED8EduzgA",
+  authDomain: "tgbot-29e30.firebaseapp.com",
+  projectId: "tgbot-29e30",
+  storageBucket: "tgbot-29e30.firebasestorage.app",
+  messagingSenderId: "72277336797",
+  appId: "1:72277336797:web:389b024ac1575c610eb134",
+  measurementId: "G-HLKG4KF088"
+};
+```
 
-MIT
+## Параметры URL
+
+Приложение поддерживает следующие параметры URL:
+
+| Параметр   | Описание                                    | Пример                     |
+|------------|---------------------------------------------|----------------------------|
+| a_userId   | ID пользователя (обязательный параметр)     | `a_userId=123456789`       |
+| b_username | Имя пользователя                            | `b_username=username`      |
+| c_country  | Страна пользователя                         | `c_country=RU`             |
+| d_device   | Устройство пользователя                     | `d_device=iOS`             |
+| e_source   | Источник перехода                           | `e_source=bot`             |
+| f_actions  | Массив действий пользователя (JSON-строка)  | `f_actions=%5B%7B%22type%22%3A%22open%22%2C%22timestamp%22%3A%222023-07-01T12%3A00%3A00Z%22%7D%5D` |
+
+Пример URL с параметрами:
+```
+https://your-app.com/?a_userId=123456789&b_username=john_doe&c_country=US&d_device=iPhone&e_source=telegram_bot
+```
+
+### Структура действий пользователя (f_actions)
+
+Параметр `f_actions` должен быть закодированной JSON-строкой, содержащей массив объектов действий:
+
+```typescript
+interface UserAction {
+  type: string;       // Тип действия
+  timestamp: string;  // Время действия в формате ISO
+  data?: any;         // Дополнительные данные (опционально)
+}
+```
+
+Пример (до URL-кодирования):
+```json
+[
+  {
+    "type": "open_app",
+    "timestamp": "2023-07-01T12:00:00Z"
+  },
+  {
+    "type": "button_click",
+    "timestamp": "2023-07-01T12:01:30Z",
+    "data": {
+      "button_id": "start_game"
+    }
+  }
+]
+```
+
+## Запуск приложения
+
+### Разработка
+```bash
+npm run dev
+```
+
+### Сборка для продакшена
+```bash
+npm run build
+```
+
+### Деплой
+```bash
+npm run deploy
+```
+
+## Структура Firebase Firestore
+
+### Коллекция gameResults
+Хранит результаты игр пользователей:
+- `userId`: ID пользователя в Telegram (строка)
+- `username`: Имя пользователя в Telegram
+- `totalScore`: Общий счет за игру
+- `stages`: Объект с данными о выборах на каждом этапе
+- `createdAt`: Дата создания записи
+- `deviceInfo`: Информация об устройстве
+- `country`: Страна пользователя
+- `device`: Устройство пользователя
+- `source`: Источник перехода
+
+### Коллекция userSettings
+Хранит пользовательские настройки:
+- `userId`: ID пользователя в Telegram (строка)
+- `username`: Имя пользователя в Telegram
+- `language`: Предпочитаемый язык
+- `theme`: Тема оформления
+- `notifications`: Статус уведомлений
+- `lastVisit`: Дата последнего посещения
+- `country`: Страна пользователя
+- `device`: Устройство пользователя
+- `source`: Источник перехода
+
+## Firebase Analytics
+
+Приложение настроено для отправки событий в Firebase Analytics:
+
+- `app_open`: При открытии приложения
+- `get_document`: При получении документа из Firestore
+- `get_collection`: При получении коллекции из Firestore
+- `add_document`: При добавлении документа в Firestore
+- `set_document`: При установке документа в Firestore
+- `update_document`: При обновлении документа в Firestore
+- `delete_document`: При удалении документа из Firestore
+- `error`: При возникновении ошибок
+
+Все события содержат данные о пользователе, устройстве и источнике перехода.
+
+## Отладка
+
+Приложение включает страницу отладки, доступную по URL `/debug`. На этой странице отображается:
+
+- Все параметры URL
+- Данные пользователя
+- Статус Telegram WebApp
+- Информация о системе
+
+## Дополнительная информация
+
+- Для работы с Firestore используется хук `useFirestore` в `src/hooks/useFirestore.ts`
+- Обработка параметров URL происходит в `src/hooks/useUrlParams.ts`
+- Обработка пользовательских данных из Telegram происходит в `src/hooks/useTelegram.ts`
+- Навигация по разделам реализована с помощью React Router
