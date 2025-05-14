@@ -1,0 +1,18 @@
+name = "firebase-admin-worker"
+main = "firebase-admin.js"
+compatibility_date = "2023-09-04"
+node_compat = true
+
+[vars]
+# Эти переменные будут заменены реальными значениями при деплое
+# в Cloudflare dashboard или через команду wrangler secret
+FIREBASE_PROJECT_ID = "tgbot-29e30"
+FIREBASE_CLIENT_EMAIL = "firebase-adminsdk-fbsvc@tgbot-29e30.iam.gserviceaccount.com"
+FIREBASE_CLIENT_X509_CERT_URL = "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40tgbot-29e30.iam.gserviceaccount.com"
+
+# Важно: Секретные данные (приватный ключ и т.д.) должны быть
+# добавлены как secrets через команду wrangler или в dashboard
+# Пример команды:
+# wrangler secret put FIREBASE_PRIVATE_KEY
+# wrangler secret put FIREBASE_PRIVATE_KEY_ID
+# wrangler secret put FIREBASE_CLIENT_ID 

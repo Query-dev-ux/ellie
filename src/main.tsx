@@ -5,15 +5,16 @@ import FlirtGame from './components/FlirtGame'
 import StatsDisplay from './components/StatsDisplay'
 import UserSettings from './components/UserSettings'
 import UrlParamsDebug from './components/UrlParamsDebug'
+import AdminDataDemo from './components/AdminDataDemo'
 import TelegramProvider from './components/TelegramProvider'
 import './index.css'
 
 // Компонент с навигацией
 const AppLayout: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'game' | 'stats' | 'settings' | 'debug'>('game');
+  const [activeTab, setActiveTab] = useState<'game' | 'stats' | 'settings' | 'debug' | 'admin'>('game');
   const navigate = useNavigate();
   
-  const handleTabChange = (tab: 'game' | 'stats' | 'settings' | 'debug') => {
+  const handleTabChange = (tab: 'game' | 'stats' | 'settings' | 'debug' | 'admin') => {
     setActiveTab(tab);
     navigate(`/${tab === 'game' ? '' : tab}`);
   };
@@ -26,6 +27,7 @@ const AppLayout: React.FC = () => {
           <Route path="/stats" element={<StatsDisplay />} />
           <Route path="/settings" element={<UserSettings />} />
           <Route path="/debug" element={<UrlParamsDebug />} />
+          <Route path="/admin" element={<AdminDataDemo />} />
         </Routes>
       </div>
       
@@ -61,6 +63,14 @@ const AppLayout: React.FC = () => {
           >
             <span className="text-2xl">🛠️</span>
             <span className="text-xs mt-1">Отладка</span>
+          </button>
+          
+          <button 
+            onClick={() => handleTabChange('admin')}
+            className={`flex flex-col items-center ${activeTab === 'admin' ? 'text-blue-600' : 'text-gray-600'}`}
+          >
+            <span className="text-2xl">👑</span>
+            <span className="text-xs mt-1">Админ</span>
           </button>
         </div>
       </div>

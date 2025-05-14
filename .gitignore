@@ -33,3 +33,9 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# Конфиденциальные данные
+/creds
+*.json.key
+*.p8
+*.pem
