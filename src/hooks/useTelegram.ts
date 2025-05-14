@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
 import type { TelegramWebApp } from '../types/telegram';
+import { useUrlParams } from './useUrlParams';
 
 // Функция для извлечения данных пользователя из URL-параметров
 const extractUserFromQueryParams = () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const userId = urlParams.get('userId');
-  const username = urlParams.get('username');
+  
+  // Сначала проверяем новые параметры с префиксами
+  let userId = urlParams.get('a_userId');
+  let username = urlParams.get('b_username');
+  
+  // Если не нашли, проверяем старые параметры
+  if (!userId) {
+    userId = urlParams.get('userId');
+    if (!username) {
+      username = urlParams.get('username');
+    }
+  }
   
   if (userId) {
     return {
-      id: parseInt(userId, 10),
+      id: userId, // Теперь id сохраняем как строку
       first_name: 'User',
       username: username || undefined,
       source: 'url_params'
@@ -21,7 +32,8 @@ const extractUserFromQueryParams = () => {
 
 export const useTelegram = () => {
   const [telegram, setTelegram] = useState<TelegramWebApp | null>(null);
-  const [parsedUser, setParsedUser] = useState<{ id: number; username?: string; first_name?: string } | null>(null);
+  const [parsedUser, setParsedUser] = useState<{ id: string | number; username?: string; first_name?: string } | null>(null);
+  const urlParams = useUrlParams();
 
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -45,11 +57,23 @@ export const useTelegram = () => {
         }
       }
       
-      // Пытаемся получить данные пользователя из URL-параметров, если они все еще недоступны
-      if (!tg.initDataUnsafe?.user && !parsedUser) {
+      // Используем данные из URL с новыми префиксами
+      if (!tg.initDataUnsafe?.user && !parsedUser && urlParams.userId) {
+        const userFromNewParams = {
+          id: urlParams.userId,
+          username: urlParams.username,
+          first_name: urlParams.username || 'User',
+          source: urlParams.source || 'url_new_params'
+        };
+        console.log('Using user data from new URL parameters:', userFromNewParams);
+        setParsedUser(userFromNewParams);
+      }
+      
+      // Если новые параметры не найдены, пытаемся использовать старые параметры
+      else if (!tg.initDataUnsafe?.user && !parsedUser) {
         const userFromParams = extractUserFromQueryParams();
         if (userFromParams) {
-          console.log('Using user data from URL parameters in useTelegram:', userFromParams);
+          console.log('Using user data from old URL parameters:', userFromParams);
           setParsedUser(userFromParams);
         }
       }
@@ -66,46 +90,43 @@ export const useTelegram = () => {
         document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color || '#f0f0f0');
       }
     } else {
-      // Даже если Telegram WebApp недоступен, пытаемся получить данные пользователя из URL
-      const userFromParams = extractUserFromQueryParams();
-      if (userFromParams) {
-        console.log('Telegram WebApp not available, but found user data in URL parameters:', userFromParams);
-        setParsedUser(userFromParams);
-      }
-    }
-  }, []);
-
-  // Пытаемся извлечь пользователя из URL при каждом изменении адреса
-  useEffect(() => {
-    // Следим за изменениями в URL (например, при переходах в приложении)
-    const handleURLChange = () => {
-      if (!telegram?.initDataUnsafe?.user && !parsedUser) {
+      // Если Telegram WebApp недоступен, сначала пробуем новые параметры
+      if (urlParams.userId) {
+        const userFromNewParams = {
+          id: urlParams.userId,
+          username: urlParams.username,
+          first_name: urlParams.username || 'User',
+          source: urlParams.source || 'url_new_params'
+        };
+        console.log('Telegram WebApp not available, using new URL parameters:', userFromNewParams);
+        setParsedUser(userFromNewParams);
+      } else {
+        // Затем пробуем старые параметры
         const userFromParams = extractUserFromQueryParams();
         if (userFromParams) {
-          console.log('URL changed, found user data in parameters:', userFromParams);
+          console.log('Telegram WebApp not available, using old URL parameters:', userFromParams);
           setParsedUser(userFromParams);
         }
       }
-    };
-
-    // Добавляем обработчик для отслеживания изменений URL
-    window.addEventListener('popstate', handleURLChange);
-    
-    // При первой загрузке тоже проверяем URL
-    handleURLChange();
-    
-    // Очистка обработчика при размонтировании компонента
-    return () => {
-      window.removeEventListener('popstate', handleURLChange);
-    };
-  }, [telegram, parsedUser]);
+    }
+  }, [urlParams]);
 
   // В объекте user используем либо данные из Telegram WebApp, либо извлеченные из URL
   const user = telegram?.initDataUnsafe?.user || parsedUser;
 
+  // Добавляем дополнительные поля из параметров URL
+  const enhancedUser = user ? {
+    ...user,
+    country: urlParams.country,
+    device: urlParams.device,
+    source: urlParams.source || (user as any).source,
+    actions: urlParams.actions
+  } : null;
+
   return {
     tg: telegram,
-    user,
+    user: enhancedUser,
+    urlParams,
     initDataStr: telegram?.initData || null,
     isSupported: Boolean(telegram),
     close: () => telegram?.close(),

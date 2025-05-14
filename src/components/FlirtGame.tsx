@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTelegram } from '../hooks/useTelegram';
 import { useAppLogging } from '../hooks/useAppLogging';
+import { useFirestore } from '../hooks/useFirestore';
+import type { GameResult } from '../types/models';
 import WelcomeScreen from './WelcomeScreen';
 import StyledMessage from './StyledMessage';
 import StyledOptionButton from './StyledOptionButton';
@@ -175,10 +177,12 @@ const FlirtGame: React.FC = () => {
   const [totalScore, setTotalScore] = useState<number>(0);
   const [showNextButton, setShowNextButton] = useState<boolean>(false);
   const [gameFinished, setGameFinished] = useState<boolean>(false);
+  const [gameResults, setGameResults] = useState<{ [key: string]: { selectedOptionText: string; score: number } }>({});
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { tg } = useTelegram();
+  const { tg, user } = useTelegram();
   const { logUserAction } = useAppLogging();
+  const { addDocument, loading, error } = useFirestore();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -248,54 +252,66 @@ const FlirtGame: React.FC = () => {
       option: option.text, 
       stage: currentStage,
       score: option.response.score || 0 
-    }).catch(console.error);
+    });
 
-    // Добавляем выбранный вариант как сообщение от пользователя
-    const updatedMessages = [...messages];
-    updatedMessages.push({ text: option.text, sender: 'system' });
-    
-    // Через небольшую задержку добавляем ответ от Элли
+    // Сохраняем выбор и оценку в результатах игры
+    setGameResults(prev => ({
+      ...prev,
+      [currentStage]: {
+        selectedOptionText: option.text,
+        score: option.response.score || 0
+      }
+    }));
+
+    // Добавляем ответ пользователя в чат
+    setMessages(prevMessages => [
+      ...prevMessages,
+      { text: option.text, sender: 'system' }
+    ]);
+
+    // Добавляем оценку к общему счету, если она указана
+    if (option.response.score !== undefined) {
+      setTotalScore(prevScore => prevScore + option.response.score!);
+    }
+
+    // Добавляем ответ Ellie в чат
     setTimeout(() => {
-      const responseMessages = [...updatedMessages];
-      responseMessages.push({ text: option.response.text, sender: 'ellie' });
-      setMessages(responseMessages);
-      
-      // Если у ответа есть score, обновляем общий счет
-      if (option.response.score !== undefined) {
-        setTotalScore(prev => prev + option.response.score!);
-      }
-      
-      const stage = gameScenario.stages[currentStage];
-      // Показываем кнопку "Далее" только если есть следующий этап и это не финальный этап
-      if (stage.nextStage && stage.nextStage !== gameScenario.finalStage) {
-        setShowNextButton(true);
-      } else if (stage.nextStage === gameScenario.finalStage) {
-        // Если следующий этап финальный, сразу переходим к нему
-        setTimeout(() => {
-          handleNextStage();
-        }, 700);
-      }
-    }, 500);
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { text: option.response.text, sender: 'ellie' }
+      ]);
+
+      setShowNextButton(true);
+    }, 1000);
   };
 
   const handleNextStage = () => {
-    // Логируем переход к следующему этапу
-    logUserAction('next_stage', { 
-      fromStage: currentStage,
-      toStage: gameScenario.stages[currentStage].nextStage || 'unknown' 
-    }).catch(console.error);
-
     setShowNextButton(false);
-    const nextStage = gameScenario.stages[currentStage].nextStage;
-    if (nextStage) {
-      setCurrentStage(nextStage);
-      // Отправляем сообщение следующего этапа
-      setMessages(prev => [...prev, { text: gameScenario.stages[nextStage].message, sender: 'ellie' }]);
+    
+    const currentStageData = gameScenario.stages[currentStage];
+    const nextStageId = currentStageData.nextStage;
+    
+    if (nextStageId && gameScenario.stages[nextStageId]) {
+      setCurrentStage(nextStageId);
       
-      // Если это финальный этап, сразу устанавливаем gameFinished в true
-      if (nextStage === gameScenario.finalStage) {
-        setTimeout(() => setGameFinished(true), 500);
-      }
+      // Добавляем сообщение следующего этапа
+      setTimeout(() => {
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { text: gameScenario.stages[nextStageId].message, sender: 'ellie' }
+        ]);
+      }, 500);
+    } else if (currentStage !== gameScenario.finalStage) {
+      // Если нет следующего этапа, но мы ещё не на финальном
+      setCurrentStage(gameScenario.finalStage);
+      
+      // Добавляем финальное сообщение
+      setTimeout(() => {
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { text: gameScenario.stages[gameScenario.finalStage].message, sender: 'ellie' }
+        ]);
+      }, 500);
     }
   };
 
@@ -321,12 +337,65 @@ const FlirtGame: React.FC = () => {
     setShowChat(true);
   };
 
-  // Логируем завершение игры
+  // Сохраняем результаты игры в Firestore при завершении
   useEffect(() => {
-    if (gameFinished) {
-      logUserAction('game_finished', { totalScore }).catch(console.error);
+    if (currentStage === gameScenario.finalStage && !loading && user) {
+      // Получаем информацию об устройстве
+      const getDeviceInfo = () => {
+        const country = navigator.language || 'unknown';
+        let device = 'unknown';
+        const ua = navigator.userAgent.toLowerCase();
+        
+        if (ua.includes('iphone') || ua.includes('ipad') || ua.includes('ipod')) {
+          device = 'iOS';
+        } else if (ua.includes('android')) {
+          device = 'Android';
+        } else if (ua.includes('windows')) {
+          device = 'Windows';
+        } else if (ua.includes('macintosh') || ua.includes('mac os')) {
+          device = 'Mac';
+        } else if (ua.includes('linux')) {
+          device = 'Linux';
+        }
+        
+        return {
+          country,
+          device,
+          platform: navigator.platform
+        };
+      };
+
+      // Создаем объект с результатами игры
+      const gameResultData: GameResult = {
+        userId: user.id,
+        username: user.username,
+        totalScore,
+        stages: gameResults,
+        deviceInfo: getDeviceInfo()
+      };
+
+      // Сохраняем результаты в Firestore
+      addDocument('gameResults', gameResultData)
+        .then(docId => {
+          if (docId) {
+            console.log('Game results saved to Firestore with ID:', docId);
+            logUserAction('game_completed', { docId, totalScore });
+          }
+        })
+        .catch(err => {
+          console.error('Error saving game results:', err);
+          logUserAction('error_saving_results', { error: err.message });
+        });
     }
-  }, [gameFinished, totalScore, logUserAction]);
+  }, [currentStage, loading, user, totalScore, gameResults, addDocument, logUserAction]);
+
+  // Показываем ошибку Firestore, если есть
+  useEffect(() => {
+    if (error) {
+      console.error('Firestore error:', error);
+      // Можно добавить отображение ошибки для пользователя
+    }
+  }, [error]);
 
   if (!showChat) {
     return <WelcomeScreen onStart={handleStartChat} />;
