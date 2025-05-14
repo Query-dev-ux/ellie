@@ -10,7 +10,7 @@ const UserSettings: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
   
-  const { getCollection, setDocument, addDocument, loading, error: firestoreError } = useFirestore();
+  const { getCollection, setDocument, addDocument, error: firestoreError } = useFirestore();
   const { user } = useTelegram();
 
   // Загружаем настройки пользователя из Firestore
@@ -67,7 +67,7 @@ const UserSettings: React.FC = () => {
     
     try {
       // Обновляем дату последнего посещения
-      const updatedSettings = {
+      const updatedSettings: UserSettingsType = {
         ...settings,
         lastVisit: new Date().toISOString(),
         userId: user.id,

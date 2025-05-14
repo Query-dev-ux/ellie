@@ -7,7 +7,7 @@ const LOG_SERVICE_URL = '/api/logAppEvent';
 
 interface LogEvent {
   event: string;
-  userId: number | null;
+  userId: string | number | null;
   username: string | null;
   timestamp: string;
   additionalData?: Record<string, any>;
