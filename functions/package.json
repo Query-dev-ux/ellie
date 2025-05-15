@@ -1,0 +1,13 @@
+{
+  "name": "miniapp-log-functions",
+  "version": "1.0.0",
+  "description": "Serverless functions for logging Telegram Mini App events to Google Sheets",
+  "main": "logAppEvent.js",
+  "scripts": {
+    "test": "echo \"No tests specified\""
+  },
+  "dependencies": {
+    "google-spreadsheet": "^4.1.0",
+    "google-auth-library": "^9.0.0"
+  }
+} 

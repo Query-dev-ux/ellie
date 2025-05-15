@@ -1,0 +1,26 @@
+{
+  "name": "ellie",
+  "compatibility_date": "2025-05-06",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist"
+  },
+  "main": "./dist/functions/_routes.js",
+  "vars": {
+    "ENVIRONMENT": "production"
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "ENVIRONMENT": "production"
+      },
+      "secrets": ["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_PRIVATE_KEY"]
+    },
+    "development": {
+      "vars": {
+        "ENVIRONMENT": "development"
+      },
+      "secrets": ["GOOGLE_SERVICE_ACCOUNT_EMAIL", "GOOGLE_PRIVATE_KEY"]
+    }
+  }
+} 

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "handle": "static"
+    },
+    {
+      "src": "/api/logAppEvent",
+      "dest": "functions/logAppEvent.js"
+    },
+    {
+      "src": "/test-telegram",
+      "dest": "/test-telegram.html"
+    },
+    {
+      "src": "/.*",
+      "dest": "/index.html"
+    }
+  ]
+} 
